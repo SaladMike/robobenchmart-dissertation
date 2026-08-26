@@ -1,0 +1,16 @@
+# tab:main-results (chapter-5.tex:22) — 成功率 %，每格 100 trials
+# "--" 表示门任务没有 Pairing 条件，保持 -- 不要填 0
+# Pose/Layout 从 02_per_item.csv 聚合；Pairing 从 03_pairing_per_product.csv 聚合
+model,scenario,basket,floor,board,open,close,pick3,fridge_seq
+Octo,Pose,1,1,2,3,4,0,0
+Octo,Layout,2,1,1,2,7,0,0
+Octo,Pairing,0,0,0,--,--,0,0
+SmolVLA,Pose,0,0,0,1,2,0,0
+SmolVLA,Layout,0,0,0,1,2,0,0
+SmolVLA,Pairing,0,0,0,--,--,0,0
+pi0,Pose,1,1,1,2,2,0,0
+pi0,Layout,1,1,1,2,2,0,0
+pi0,Pairing,0,1,0,--,--,0,0
+pi05,Pose,1,1,1,2,2,0,0
+pi05,Layout,1,1,1,1,2,0,0
+pi05,Pairing,1,1,3,--,--,0,0

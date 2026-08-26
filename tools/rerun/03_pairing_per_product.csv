@@ -1,0 +1,9 @@
+# appendix-b.tex:87 — Pairing 条件下的逐商品成功率 %
+# 现状：只有 pi05 非零，pi0 仅 floor 有 1%，其余全零
+model,task,product,success_pct
+pi05,Board transfer,Nivea,3
+pi05,Board transfer,Fanta,3
+pi05,Floor,Duff,1
+pi05,Floor,Fanta,1
+pi05,Basket,Nestle,1
+pi05,Basket,SLAM,1

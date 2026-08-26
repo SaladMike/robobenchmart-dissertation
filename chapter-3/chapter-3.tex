@@ -138,7 +138,7 @@ Two composite tasks extend the horizon. \emph{Pick three items} executes three p
 
 \section{Training corpus}
 
-The demonstration collector generated 248 successful trajectories for each configured task--item--fixture triplet, giving 2,976 episodes and 1,401,169 transitions. Collection, scene generation and rendering took approximately eight hours on the stated NVIDIA V100 setup. This timing is hardware- and configuration-dependent; it is included as a record of the reported experiment, not a portable performance guarantee.
+The demonstration collector generated 248 successful trajectories for each configured task--item--fixture triplet, giving 2,976 episodes and 1,401,169 transitions. Collection, scene generation and rendering took approximately ten hours on a single NVIDIA RTX 4090. This timing is hardware- and configuration-dependent; it is included as a record of the reported experiment, not a portable performance guarantee.
 
 Each transition contains three modalities. The language command describes the requested operation and target. RGB observations come from left-shoulder and right-shoulder cameras at $256\times256$ pixels and a wrist camera at $128\times128$ pixels. The native Fetch head view is omitted because the arm often occludes it. Proprioception contains joint positions and velocities.
 

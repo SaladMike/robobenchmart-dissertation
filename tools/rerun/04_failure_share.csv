@@ -1,0 +1,7 @@
+# tab:failure-share (chapter-5.tex:184) — 各类失败占比 %，每行必须合计 100
+# 11 个类别按流水线阶段排序：任务选择 → 导航 → 抓取 → 抓后副作用 → 放置 → 铰接
+model,task,target,move,pregrasp,grasp,drop,displace,preplace,place_coord,place,partial
+Octo,13,22,10,10,30,2,2,1,1,6,3
+SmolVLA,9,20,12,40,17,0,0,0,0,0,2
+pi0,3,20,3,20,30,5,1,2,4,5,7
+pi05,2,18,1,12,40,4,7,0,2,9,5

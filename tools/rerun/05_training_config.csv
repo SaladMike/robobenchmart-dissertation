@@ -1,0 +1,8 @@
+# chapter-4.tex:47 + appendix-b.tex:9 — 训练配置
+# reran: yes = 这个模型用 1x RTX 4090 重跑了；no = 沿用原 A100 全量微调结果
+# 若出现混合配置，必须在 chapter-4 效度节说明两组不可直接比较
+model,params,reran,method,gpu,gpu_count,steps,batch_size,lora_rank,lora_alpha,lora_target_modules,learning_rate,lr_schedule,wall_clock,action_horizon,notes
+Octo,93M,yes,Full fine-tuning,RTX 4090,1,100000,8,,,,,,2h,50,Octo 保持全量微调；官方实现无 LoRA；2 history obs + continuous action head
+SmolVLA,450M,yes,LoRA,RTX 4090,1,100000,8,64,64,LM expert q_proj/v_proj + state/action projections,1e-3,cosine 1e-3 -> 1e-4,2h,50,官方 PEFT 参数起点
+pi0,3.3B,yes,LoRA,RTX 4090,1,30000,8,16(VLM)/32(expert),16(VLM)/32(expert),Gemma attention + FFN (VLM and action expert),2.5e-5,warmup 1000 + cosine 2.5e-5 -> 2.5e-6,2.5h,50,EMA off
+pi05,3.3B,yes,LoRA,RTX 4090,1,30000,8,16(VLM)/32(expert),16(VLM)/32(expert),Gemma attention + FFN (VLM and action expert),5e-5,warmup 10000 -> 5e-5 then constant,2.5h,50,社区验证的 LoRA 配方；不是官方独立默认

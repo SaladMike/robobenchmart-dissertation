@@ -1,0 +1,13 @@
+# chapter-5.tex:79 — 并行环境吞吐扫描（原始数据已丢失，本来就必须重跑）
+# obs_mode: state 或 rgb
+obs_mode,num_envs,fps_aggregate,gpu_memory_gb
+state,1,,
+state,8,,
+state,32,,
+state,64,,
+state,128,,
+rgb,1,,
+rgb,8,,
+rgb,32,,
+rgb,64,,
+rgb,128,,

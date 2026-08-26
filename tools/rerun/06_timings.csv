@@ -1,0 +1,12 @@
+# fig:mesh-performance (chapter-5.tex:86) — 50 步仿真耗时（秒）vs 已上货的货架单元数
+# 原始网格系列当初止步于 4 单元（再多就步进不动）。4090 上能跑到几个单元？跑到哪就填到哪，空着的留空
+mesh_setting,shelving_units,seconds_per_50_steps
+simplified,1,0.42
+simplified,8,0.23
+simplified,20,0.41
+simplified,118,0.42
+original,1,0.21
+original,2,0.53
+original,4,1.24
+original,8,
+original,20,

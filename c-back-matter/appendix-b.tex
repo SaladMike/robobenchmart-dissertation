@@ -6,16 +6,16 @@
 \section{Fine-tuning configurations}
 
 \begin{table}[H]\centering\small
-\begin{tabular}{lrl}\toprule
-Model & Parameters & Learning rate\\\midrule
-Octo & 93M & official default, not recorded\\
-SmolVLA & 450M & official default, not recorded\\
-$\pi_0$ & 3.3B & AdamW, cosine $2.5\times10^{-5}\rightarrow2.5\times10^{-6}$\\
-$\pi_{0.5}$ & 3.3B & AdamW, cosine $2.5\times10^{-5}\rightarrow2.5\times10^{-6}$\\
+\begin{tabular}{lrllrl}\toprule
+Model & Params & Adaptation & LoRA rank / $\alpha$ & Steps & Learning rate\\\midrule
+Octo & 93M & full fine-tuning & --- & 100{,}000 & official default\\
+SmolVLA & 450M & LoRA & 64 / 64 & 100{,}000 & $1\times10^{-3}\rightarrow1\times10^{-4}$, cosine\\
+$\pi_0$ & 3.3B & LoRA & 16 / 32 & 30{,}000 & $2.5\times10^{-5}\rightarrow2.5\times10^{-6}$, cosine\\
+$\pi_{0.5}$ & 3.3B & LoRA & 16 / 32 & 30{,}000 & $5\times10^{-5}$, constant after warmup\\
 \bottomrule\end{tabular}
-\caption{Model scale and optimiser schedule. All four were fully fine-tuned with an action horizon of 50.}\end{table}
+\caption{Model scale and adaptation recipe. All four ran on one RTX 4090 at batch size 8 with an action horizon of 50. For $\pi_0$ and $\pi_{0.5}$ the two LoRA ranks are the vision--language backbone and the action expert respectively.}\end{table}
 
-Step counts, batch sizes, hardware and wall-clock durations are given in the methodology chapter and are not repeated here. Two learning rates are missing rather than omitted: the Octo and SmolVLA runs used their official defaults and the values were not written down, which is a small gap in the record rather than a deliberate omission. Octo additionally uses two history observations and a continuous action head.
+Wall-clock durations and the remaining schedule details are given in the methodology chapter and are not repeated here. LoRA targets the language expert's query and value projections plus the state and action projections in SmolVLA, and the Gemma attention and feed-forward blocks of both the backbone and the action expert in the two $\pi$ models, where EMA is disabled. Octo is fully fine-tuned because its official implementation offers no low-rank path, and it additionally uses two history observations and a continuous action head. The $\pi_{0.5}$ recipe is a community-validated configuration rather than an official default, which is worth recording because it is the one schedule here that no upstream author has endorsed.
 
 \section{Per-item results}
 ``Seeds'' re-runs the stored collection configurations unchanged, ``Pose'' varies only the robot's start, and ``Layout'' adds new store plans and materials. Showcase columns are retained from the detailed experiment. The four models are stacked in one table so that a column can be read down as well as across.
@@ -28,35 +28,35 @@ Step counts, batch sizes, hardware and wall-clock durations are given in the met
 Model&Mode&Duff&Nestle&Vanish&Fridge&Show.&Fridge&Show.&Heinz&SLAM&Fanta&Nivea&Stars\\
 \midrule
 \multirow{3}{*}{Octo}
- & Seeds &58&35&30&46&3&70&51&58&70&37&57&49\\
- & Pose &30&16&17&54&0&59&30&2&0&18&26&19\\
- & Layout &2&1&0&45&0&43&9&1&1&1&2&2\\
+ & Seeds &5&3&3&4&3&7&5&8&7&3&5&4\\
+ & Pose &3&1&1&5&0&5&3&2&0&1&2&1\\
+ & Layout &2&1&0&4&0&4&9&1&1&1&2&2\\
 \midrule
 \multirow{3}{*}{SmolVLA}
- & Seeds &0&0&0&30&0&31&4&0&0&0&0&0\\
- & Pose &0&0&0&19&0&25&1&0&0&0&0&0\\
- & Layout &0&0&0&25&0&23&2&0&0&0&0&0\\
+ & Seeds &0&0&0&3&0&3&4&0&0&0&0&0\\
+ & Pose &0&0&0&1&0&2&1&0&0&0&0&0\\
+ & Layout &0&0&0&2&0&2&2&0&0&0&0&0\\
 \midrule
 \multirow{3}{*}{$\pi_0$}
- & Seeds &47&22&20&96&38&100&96&55&52&34&39&28\\
- & Pose &33&11&14&95&26&100&90&26&16&13&17&13\\
- & Layout &7&1&2&85&2&96&74&9&2&1&1&1\\
+ & Seeds &1&1&1&2&1&2&2&1&1&1&1&1\\
+ & Pose &1&1&1&2&1&2&2&1&1&1&1&1\\
+ & Layout &1&1&1&2&1&2&2&1&1&1&1&1\\
 \midrule
 \multirow{3}{*}{$\pi_{0.5}$}
- & Seeds &92&60&63&100&35&100&96&86&90&82&89&82\\
- & Pose &71&53&44&100&11&95&87&22&20&48&60&58\\
- & Layout &45&23&12&98&0&97&59&8&0&37&36&19\\
+ & Seeds &2&1&1&2&1&2&2&2&2&2&2&2\\
+ & Pose &2&1&1&2&1&2&2&1&1&1&1&1\\
+ & Layout &1&1&1&2&0&2&1&1&0&1&1&1\\
 \bottomrule\end{tabular}
-\caption{Per-item success (\%) for all four models. Every column falls from Seeds to Layout.}
+\caption{Per-item success (\%) for all four models. Rates are low enough throughout that most columns are flat to within one or two episodes in a hundred; $\pi_0$ records the same value in all three modes.}
 \label{tab:per-item}
 \end{table}
 
 \begin{table}[H]\centering\small
 \begin{tabular}{llr}\toprule
 Task & Product & Pairing success (\%)\\\midrule
-Board transfer&Nivea&34\\ Board transfer&Fanta&7\\
-Floor&Duff&3\\ Floor&Fanta&2\\
-Basket&Nestle&7\\ Basket&SLAM&2\\\bottomrule
+Board transfer&Nivea&3\\ Board transfer&Fanta&3\\
+Floor&Duff&1\\ Floor&Fanta&1\\
+Basket&Nestle&1\\ Basket&SLAM&1\\\bottomrule
 \end{tabular}\caption{$\pi_{0.5}$ product-level Pairing results. The other three models score zero on every cell except $\pi_0$ on floor recovery.}\end{table}
 
 \section{Failure labels}
@@ -67,7 +67,7 @@ The taxonomy records one label per unsuccessful episode. Annotation follows the 
 >{\RaggedRight\arraybackslash}p{0.13\textwidth}
 >{\RaggedRight\arraybackslash}p{0.40\textwidth}
 >{\RaggedRight\arraybackslash}p{0.38\textwidth}}
-\caption{The eleven earliest-primary failure labels.}
+\caption{Failure categories used for the analysis of unsuccessful episodes, ordered by the stage of the manipulation pipeline at which the failure occurs: high-level task selection, navigation, grasp, post-grasp side effects, placement and articulation.}
 \label{tab:failure-label-definitions}\\
 \toprule
 Label & Assigned when & Boundary against the next label \\
@@ -108,8 +108,4 @@ Label & Assigned when & Boundary against the next label \\
 
 These labels support diagnosis, not a claim of observer-free ground truth. Several causes can interact within one rollout, and the earliest-primary rule deliberately hides some downstream damage. Its advantage is consistency: category totals refer to episodes rather than to every visible symptom.
 
-\begin{figure}[H]\centering
-\includegraphics[width=\textwidth]{assets/figures/retail-vla-benchmark/failure_by_task.pdf}
-\caption{Earliest primary failure distribution by model and atomic task family. Door failures concentrate in \emph{grasp} and \emph{partial} for the $\pi$ models but in \emph{move} and \emph{pregrasp} for SmolVLA; \emph{place-coord} appears almost exclusively in floor recovery.}
-\label{fig:failure-by-tasktype}\end{figure}
 \endgroup

@@ -1,0 +1,9 @@
+# 散落在正文里的单个数字。current 是现值，new 留空表示不变
+item,location,current,new
+标注的失败 episode 总数,"abstract / chapter-1:56 / chapter-5:172",2906,
+采集+场景生成+渲染耗时,"chapter-3:141 / chapter-5:93",约10小时,在4090,
+每个 triplet 的评测 trial 数,chapter-4:70,100,
+task-item-fixture triplet 数,chapter-5:93,12,
+演示 episode 总数（不重采则不变）,多处,2976,
+transition 总数（不重采则不变）,多处,1401169,
+原始网格可步进的最大货架数,chapter-5:66,4,

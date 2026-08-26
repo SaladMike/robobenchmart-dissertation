@@ -7,11 +7,11 @@ This dissertation reports original research carried out by the candidate. The re
 The candidate's contributions consist of the following work:
 
 \begin{enumerate}[leftmargin=*,itemsep=0.15\baselineskip]
-\item Construction of a reproducible mobile-manipulation evaluation environment for retail scenarios, including ManiSkill simulator configuration, asset acquisition, scene generation, model-service deployment and end-to-end integration of the evaluation client.
-\item Design and implementation of the inference and evaluation pipeline for vision-language-action (VLA) policies across five atomic task families and two composite tasks, covering pick-and-place and open/close manipulation.
-\item Adaptation and comparative evaluation of four VLA policy families across training scenes, randomised initial poses, held-out test scenes and unseen task--item pairings.
-\item Construction of a data pipeline spanning motion-planning trajectory collection, raw trajectory replay with visual observation rendering, and conversion from HDF5 trajectories to the RLDS format.
-\item Failure-mode analysis of VLA policies in retail mobile manipulation, addressing long-horizon action stability, cross-scene generalisation, target-interaction precision and task-decomposition capability.
+\item Construction of a reproducible mobile-manipulation evaluation environment for retail scenarios on ManiSkill3, covering simulator and robot configuration, asset acquisition and curation, procedural store-plan and shelf-arrangement generation, policy-server deployment and end-to-end integration of the evaluation client.
+\item Design and implementation of the inference and evaluation pipeline for vision-language-action (VLA) policies across five atomic task families---realised as seven task instances spanning pick-and-place and articulated-door manipulation---and two composite tasks whose subtask sequence is supplied by an oracle.
+\item Adaptation and comparative evaluation of four VLA policy families under the study's cumulative shift conditions---Pose, Layout and Pairing---together with the Seeds control that reruns the stored training configurations, at 100 trials per task--item--fixture triplet.
+\item Construction of the demonstration pipeline: anchor-based trajectory collection using screw-motion planning with an RRT-Connect fallback, environment-level acceptance testing of every candidate rollout, and storage of the resulting 2,976 successful episodes and 1,401,169 transitions with the seeds and configuration hashes needed to reconstruct them.
+\item Failure-mode analysis of 2,906 unsuccessful episodes under an earliest-primary labelling rule across eleven categories ordered by the stage of the manipulation pipeline at which the failure occurs, and reproduction and reporting of each discrepancy between the documented protocol and the experiment as executed.
 \end{enumerate}
 
 \vspace{0.5\baselineskip}

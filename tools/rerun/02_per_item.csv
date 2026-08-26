@@ -1,0 +1,15 @@
+# tab:per-item (appendix-b.tex:55) — 逐商品成功率 %
+# 这是最完整的一张表，含 Seeds 对照条件和 showcase 两列，正文主表没有
+model,mode,board_duff,board_nestle,board_vanish,open_fridge,open_showcase,close_fridge,close_showcase,floor_heinz,floor_slam,basket_fanta,basket_nivea,basket_stars
+Octo,Seeds,5,3,3,4,3,7,5,8,7,3,5,4
+Octo,Pose,3,1,1,5,0,5,3,2,0,1,2,1
+Octo,Layout,2,1,0,4,0,4,9,1,1,1,2,2
+SmolVLA,Seeds,0,0,0,3,0,3,4,0,0,0,0,0
+SmolVLA,Pose,0,0,0,1,0,2,1,0,0,0,0,0
+SmolVLA,Layout,0,0,0,2,0,2,2,0,0,0,0,0
+pi0,Seeds,1,1,1,2,1,2,2,1,1,1,1,1
+pi0,Pose,1,1,1,2,1,2,2,1,1,1,1,1
+pi0,Layout,1,1,1,2,1,2,2,1,1,1,1,1
+pi05,Seeds,2,1,1,2,1,2,2,2,2,2,2,2
+pi05,Pose,2,1,1,2,1,2,2,1,1,1,1,1
+pi05,Layout,1,1,1,2,0,2,1,1,0,1,1,1
