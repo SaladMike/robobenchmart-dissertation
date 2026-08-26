@@ -1,0 +1,6 @@
+{
+  "note": "50 simulation steps, Intel Xeon Gold 6278C + NVIDIA V100. Values recovered from the published vector figure and cross-checked against four axis gridlines.",
+  "units": {"shelving_units": "count", "seconds": "s"},
+  "optimised": [[1, 0.900], [8, 0.900], [20, 1.000], [118, 1.200]],
+  "original":  [[1, 0.600], [2, 0.800], [4, 4.494]]
+}

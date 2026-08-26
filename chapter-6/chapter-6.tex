@@ -1,0 +1,64 @@
+\chapter{Conclusion and Future Work}
+\label{chap:conclusion}
+\begingroup
+\justifying
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.55\baselineskip}
+
+\section{Conclusions}
+
+This dissertation set out to build a retail mobile-manipulation benchmark and to find out what current generalist policies do inside it. Both halves produced an answer, and the second is less encouraging than I had hoped.
+
+What can be said plainly is short. Four generalist policies, adapted on a common corpus of 2,976 planned demonstrations, do not hold their performance when a retail scene changes in ways a person would call minor. $\pi_{0.5}$ is the strongest of them and still surrenders twenty-nine percentage points on shelf-to-shelf transfer once the store layout and its surfaces change. None of the four completes a composite request in any condition. Half of $\pi_{0.5}$'s labelled failures fall at the moment of grasp, after it has already reached the correct product---which is to say the remaining problem is not principally one of understanding.
+
+The system that produced those numbers also works. Store plans are generated with structured variation and stay navigable; a planning pipeline turned task specifications into 2,976 successful episodes and 1,401,169 transitions without manual teleoperation; four model families with different architectures and action representations were adapted through one interface. Within its engineering criteria, RQ1 is answered yes, and RQ2 is answered yes with a qualification: the corpus is planner-shaped, contains no recovery behaviour and should be treated as a foundation rather than a solution.
+
+RQ3 is answered in the results chapter. Performance degrades monotonically as the shift strengthens; item-level variance is large enough that task means conceal both successful transfer and total failure; and the failure distribution locates the recurring bottlenecks at grounding, pre-grasp positioning and grasp.
+
+One further result was not planned. During the production of the initial results, the experimental implementation was examined independently by a fellow student, and I reproduced each retained discrepancy myself before revising the interpretation. The resulting list is lopsided. The products called unseen were on the shelves throughout training. The scenes called unseen were, for four of the seven atomic tasks, the training scenes. The robot began every episode 1.4~metres from the correct fixture and facing it, so store-scale navigation was never in the experiment at all. The acceptance box is forty centimetres across; the collateral-damage check is narrower than the equation that describes it; and several stores that were meant to differ were generated from identical seeds. Against that, two aspects were harsher than described: the policy was blind for fifty simulator steps at a stretch and the torso never moved.
+
+Nearly everything on the longer list made the test more forgiving. The scores were near zero anyway.
+
+That asymmetry is the closest thing this dissertation has to a robust finding, and it cuts two ways. The headline claim---that generalist pretraining plus a few hundred demonstrations per combination does not yield dependable retail behaviour under this protocol---comes through with more room to spare than the original design would have given it. The diagnostic layer does not. Two of the more quotable interpretations in the results chapter rested on contrasts the implementation never actually ran, and both have been withdrawn to the status of hypotheses with experiments attached.
+
+The contribution, then, is a benchmark, an empirical study and a documented account of the distance between the two. It is not a new architecture or a new metric. A reader who wants one number from this work should take the composite column: zero, everywhere, under conditions easier than advertised.
+
+\section{Limitations}
+
+These are limits of design rather than defects of execution, which makes them no less binding. The differences between the documented protocol and the experiment as executed are separate and are reported in Section~\ref{sec:verification}.
+
+Everything here is simulated on one principal embodiment. Real products bring deformable labels, transparent packaging, uncertain friction, sensor noise, calibration error and damage modes that no amount of rendering fidelity supplies. Human workers and moving equipment are absent entirely. The task set covers picking and articulation but stops there: no scanning, no deformable bags, no inventory verification, no requirement to behave safely around a person.
+
+The statistics are thinner than the number of episodes suggests. A hundred trials per triplet would support bootstrap intervals over seeds, paired comparisons between models on shared episode configurations and a mixed-effects treatment of item and layout variance. None of that is reported. Point estimates are reported, but small differences between adjacent cells should not be read as differences in capability. The failure taxonomy has a related weakness: one annotator, no second pass, no agreement statistic and an earliest-primary rule that deliberately hides downstream damage.
+
+Compute differed across model families by more than an order of magnitude, so the cross-model table compares pipelines rather than architectures and cannot be used the other way.
+
+Composite tasks are decomposed by an oracle, which means their zeros say something about sequential execution and nothing about autonomous planning. Worse, the zeros were reported as zeros when the environments had already computed how far each episode got. That was an error in this dissertation, not a property of the benchmark, and it is the one item on this list that could be fixed this week.
+
+\section{Future work}
+
+Before anything is extended, one thing should be repeated. A corrected rerun would restore the torso to the action space, unpin the head, generate genuinely disjoint evaluation scenes for the four door tasks, replace the duplicated configuration seeds, widen the collateral check to the whole scene and sweep the execution horizon rather than fixing it at fifty. Most of those are configuration edits and cost minutes. Restoring the torso is not a configuration edit: it changes the action space, invalidates all four checkpoints at once and turns the exercise into roughly three weeks of adaptation across the same allocations. That is why this dissertation reports the study it ran rather than a repaired version of it and why the successor should be designed from the start rather than patched together from this one.
+
+The most immediate extension after that is an automatic diagnostic evaluator. An evaluator using ground-truth simulator state could calculate target-selection accuracy, navigation reachability, pre-grasp pose error, grasp retention time, non-target displacement and conditional subtask success. Episode-level outputs would support confidence intervals and make failure analysis less dependent on manual labels.
+
+Data collection should add recovery. Perturbing demonstrations at approach and grasp stages, then planning or teleoperating corrections, would teach the policy what to do after small deviations. A mixed corpus could retain efficient planned successes while adding human demonstrations where contact is difficult. Retail-specific pretraining is another promising hypothesis, but it should be tested through controlled data-scale and domain-mixture ablations rather than assumed from model ranking.
+
+Scene generation can also move closer to measured reality. Store-plan statistics, calibrated camera noise, friction variation, compliant packaging and dynamic obstacles would improve external validity. Dynamic level of detail based on camera visibility could replace the current near-versus-background simplification rule. Finally, physical validation should begin with matched atomic tasks and identical success predicates, then quantify the sim-to-real gap before attempting a full autonomous order.
+
+\section{A staged route to physical validation}
+
+Physical validation should proceed in stages rather than attempt a complete dark-store deployment at once. The first stage would reconstruct one simulated shelf cell using matched product dimensions, a calibrated Fetch sensor arrangement and the same atomic success predicates. A small set of planned demonstrations could verify controller mapping and reveal the magnitude of mismatches in perception, friction and calibration. Results should be paired by item and initial pose so that the simulation-to-real gap is measured, not described impressionistically.
+
+The next stage would introduce controlled variation one factor at a time: packaging gloss, shelf height, object mass, friction and camera exposure. Failures could then be compared with the simulator taxonomy. If physical episodes fail before grasp while their simulated counterparts reach contact, perception or calibration deserves priority. If both reach the item but only physical grasps slip, contact modelling and compliance are the more likely gap. This paired diagnostic use is more informative than reporting a single real-world success percentage.
+
+Only after atomic transfer is understood should the system move into a full aisle and composite orders. Safety constraints would need explicit treatment: limited base speed, collision monitoring, emergency stop, exclusion zones and conservative recovery when a product or fixture state becomes uncertain. Human supervision requirements should be reported with throughput, because an apparently autonomous system that frequently requests intervention shifts rather than removes labour.
+
+This staged route keeps the benchmark useful even if absolute simulated scores do not predict physical scores. Its controlled scenes provide hypotheses, repeatable starting states and failure vocabulary. Physical trials then test which parts transfer and which require a richer model. The outcome would be a calibrated benchmark rather than a claim that visual realism alone closes the sim-to-real gap.
+
+Physical validation must also include the people affected by the system. Retail automation can reduce repetitive lifting and make fulfilment more consistent, but it can also relocate work into supervision, exception handling and equipment maintenance. A field study should therefore record interventions, near misses and recovery burden alongside robot throughput. Worker feedback can reveal hazards that are invisible in simulation, such as blocked escape routes, awkward manual resets or uncertainty about when the robot will move. These observations belong in system evaluation rather than a separate afterthought.
+
+Data governance is relevant even when the benchmark itself is synthetic. A deployed robot may capture workers, customer information or commercially sensitive shelf state. Camera retention, access control and model logging should be specified before collection begins. Synthetic pretraining reduces some privacy exposure, but physical evaluation reintroduces it. The responsible objective is not maximum autonomy at any cost; it is a system whose benefits, failure modes and human responsibilities can be measured and challenged.
+
+The benchmark's hardest result is also its most useful one: a policy can look general on broad pretraining data and remain fragile at a shelf. By making that fragility reproducible and diagnosable, the proposed benchmark provides a concrete starting point for work that aims to close it.
+
+\endgroup

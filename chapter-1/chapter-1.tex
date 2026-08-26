@@ -1,0 +1,68 @@
+\chapter{Introduction}
+\label{chap:introduction}
+\begingroup
+\justifying
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.55\baselineskip}
+
+\section{Retail manipulation as a systems problem}
+
+Moving a packet from one shelf to another looks simple. For a robot, it is not. The instruction may name a product whose packaging differs only slightly from its neighbours; the correct object may sit behind another item; the gripper must enter a narrow gap without sweeping adjacent products away; and a mobile base that stops a few centimetres too early can turn an otherwise reachable grasp into a failure. A refrigerated display adds articulated doors, handles and constrained approach directions. A complete order adds memory and sequencing. Each difficulty is familiar in isolation, but their combination makes retail manipulation a useful stress test for embodied intelligence.
+
+This dissertation studies that combination through a simulated benchmark and data-generation system for mobile manipulation in store-like environments. The work starts from a practical observation: the dominant robot-learning benchmarks have made household and tabletop manipulation substantially easier to compare, yet retail logistics remains thinly represented. Image datasets can measure whether a model detects products on shelves, but detection alone does not reveal whether a robot can navigate to the shelf, select the instructed instance, form a stable grasp and finish the placement without disturbing stock. Conversely, a small fixed manipulation scene may expose control errors while hiding the layout and visual changes that occur between stores. The benchmark therefore treats the store, the task, the demonstration data and the evaluation protocol as one coupled design problem.
+
+The system is built on ManiSkill3, whose GPU-parallel simulation and rendering support reproducible embodied evaluation at a scale that would be difficult to reset manually in a physical shop~\cite{taomaniskill3}. Procedural scene generation produces store plans, fixture arrangements and shelf populations. A motion-planning pipeline supplies successful demonstrations. Language-conditioned policies are then adapted on atomic skills and tested under increasingly unfamiliar conditions. The resulting study does not propose a new vision-language-action (VLA) architecture. Its contribution is different: it builds the missing experimental instrument and uses it to expose where existing generalist policies break.
+
+That distinction matters. A benchmark can be scientifically useful even when none of its components is individually a new learning algorithm. Its value rests on the questions it makes testable, the controls it provides and the evidence it produces. The proposed benchmark separates layout, texture, initial-pose and item variation; encodes task success in the environment rather than relying on visual judgement alone; and records failures at different stages of the manipulation pipeline. These choices permit a sharper question than ``does the robot work?'': does it retain a learned retail skill when the scene or the task--object pairing changes, and if it does not, where does the execution first go wrong?
+
+\section{Problem statement}
+
+The central problem addressed here is the absence of a reproducible, end-to-end test bed for language-conditioned mobile manipulation in visually dense retail spaces. Existing resources cover important fragments of the problem. Product datasets support recognition; general manipulation suites provide task APIs and physics; robot datasets support policy pretraining; and procedural scene tools can populate indoor environments. None of those fragments, by itself, provides the controlled progression from a familiar retail scene to an unseen layout and then to an unseen task--item combination.
+
+The gap has two consequences. First, claims of generality can be difficult to interpret. A policy may succeed because it remembers a texture, a product or a camera--target relation rather than because it has acquired a transferable manipulation skill. Second, poor aggregate performance is diagnostically weak. A zero can mean that the language instruction was misunderstood, the wrong product was chosen, the base never reached the shelf, the pre-grasp pose was poor, the object slipped or the placement collided with neighbouring stock. A benchmark should make these explanations separable.
+
+The dissertation consequently frames evaluation around three research questions:
+
+\begin{description}[leftmargin=2.8em,style=nextline]
+    \item[\textbf{RQ1}] How can store layouts, fixtures and shelf contents be generated with enough variation for generalisation studies while preserving collision-free, navigable and visually plausible scenes?
+    \item[\textbf{RQ2}] Can a reproducible motion-planning pipeline produce sufficient successful demonstrations for adapting generalist VLA policies to mobile retail tasks?
+    \item[\textbf{RQ3}] How do adapted policies behave as evaluation moves from familiar conditions to unseen scenes and unseen task--item combinations, and which failure stages account for the loss of performance?
+\end{description}
+
+While the initial results were being obtained, I asked a fellow student to independently compare my experimental implementation with the protocol documented here. I subsequently reproduced each reported discrepancy myself, and the confirmed findings are presented in Section~\ref{sec:verification} and carried into the limitations.
+
+RQ1 is a scene-design question. It is answered by a tensor-field-guided fixture generator, structured product placement, asset normalisation and mesh simplification. RQ2 concerns data and execution. It is addressed through task-specific anchor poses, screw-motion planning with collision checking, RRT-Connect fallback and deterministic seed handling. RQ3 is empirical: four generalist policies are fine-tuned on the same demonstration corpus and compared across controlled test scenarios using task success and an earliest-primary-failure taxonomy.
+
+\section{Objectives and scope}
+
+The first objective is to create a simulation pipeline that varies the parts of a retail scene that matter to a robot. The intended output is not merely a visually different background. The generator must place fixtures without overlap, retain passage space for a mobile manipulator, orient shelving coherently and populate support surfaces with product groups. Layout and arrangement randomness are given separate seed sequences in the software configuration, which is meant to keep a visual change from silently moving every other experimental variable. In the configuration used here the two sequences are populated from the same base value, so the separation exists in the interface and not yet in any experiment.
+
+The second objective is to define a compact but meaningful task suite. The evaluated atomic tasks cover picking to a basket, recovering an item from the floor, transferring an item between shelf boards and opening or closing a fridge. Composite evaluations chain these primitives into collecting three products or retrieving an item from a closed refrigerator. Success checks go beyond the target pose. They also require the robot to settle, and pick-and-place tasks reject executions that disturb non-target products. In a densely stocked store, collateral motion is not a cosmetic defect; it is part of task correctness.
+
+The third objective is to generate and document a training corpus suitable for VLA adaptation. The resulting dataset contains 2,976 successful demonstrations and 1,401,169 transitions. Each observation combines a language instruction, three RGB views and robot proprioception; each action controls the arm, gripper, torso and mobile base. These figures describe the corpus used in this study, not a claim that the dataset is exhaustive.
+
+The final objective is to evaluate whether current policies transfer across retail-specific distribution shifts. Octo, SmolVLA, $\pi_0$ and $\pi_{0.5}$ are adapted only on atomic tasks. Evaluation covers in-domain poses, unseen scenes and unseen scenes combined with items that were observed elsewhere in training but not paired with the tested task. The design deliberately stops short of claiming open-world deployment. Entirely novel objects and unseen shelf arrangements are supported by the generator, but the reported comparison focuses on easier shifts because the evaluated models already struggle there.
+
+Several boundaries keep the conclusions honest. All experiments are simulated; no physical-robot transfer is claimed. The task inventory is representative rather than complete: scanning, deformable packaging, human interaction, damage detection and dynamic restocking are outside the current implementation. Composite instructions are decomposed by an oracle into atomic commands, so the experiment tests sequential execution more than autonomous plan synthesis. Finally, the evaluated success rates establish performance for the stated models, checkpoints and protocol. They do not prove that every generalist policy will fail, nor do they isolate pretraining data as the sole causal explanation for differences between models.
+
+\section{Contributions}
+
+The work makes five connected contributions.
+
+\begin{itemize}[leftmargin=1.8em]
+    \item A procedural retail-scene pipeline combines tensor-field-guided fixture placement with configurable shelf population, texture randomisation and a curated asset library. The software produces structured variation while retaining navigability and collision constraints.
+    \item A retail task and demonstration framework couples language instructions, mobile manipulation, three-view RGB observations and environment-level success checks. Stored seeds, configuration hashes and machine-readable scene descriptions make experiment reconstruction practical.
+    \item A benchmark protocol separates familiar poses, unseen scenes and unseen task--item pairings. Four public VLA families are adapted using a common demonstration source and evaluated on atomic and composite tasks.
+    \item A failure analysis labels the earliest primary breakdown in 1,581 unsuccessful episodes. It separates grounding, movement, pre-grasp, grasp, post-grasp, placement and articulation failures, converting a low success rate into a more actionable diagnosis.
+    \item An independently verified account of the experimental protocol. Each confirmed discrepancy between the documented conditions and the conditions actually executed is reported with the direction it pushed the result. Most made the evaluation more permissive than described, and the policies failed anyway, which is the sense in which the verification strengthens the empirical finding rather than undermining it.
+\end{itemize}
+
+Together these support a systems claim: retail manipulation needs a benchmark in which perception, navigation, contact-rich control and generalisation are tested jointly. They do not constitute a new foundation-model architecture, a new optimisation objective or a new statistical metric. The technical novelty lies principally in benchmark construction, domain-specific scene synthesis, integration and empirical diagnosis.
+
+That claim is made once, here, and not defended again. What follows spends a good deal of its length on what the system and the study fail to do, and a reader should take the proportion as deliberate rather than as retreat.
+
+\section{Dissertation structure}
+
+The literature review positions the project among manipulation benchmarks, retail perception resources, procedural simulation, demonstration generation and generalist robot policies. The system chapter turns the first research question into system requirements and describes the scene, asset and task architecture. The methodology chapter explains the tensor field, product arrangement, trajectory sampler, observation--action interface and evaluation design and gives more space to threats against validity than is customary. The results chapter reports benchmark results, quantifies distribution-shift degradation, analyses failure modes and sets out which interpretations survive the independent verification of the protocol. Two of them do not. The conclusion answers the research questions on what remains and identifies the most useful next experiments. The appendices preserve task definitions, hyperparameters, item splits, detailed tables and reproducibility information that would otherwise interrupt the main argument.
+
+\endgroup

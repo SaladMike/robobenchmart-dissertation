@@ -1,0 +1,143 @@
+\chapter{An Audit of the Instrument}
+\label{chap:audit}
+\begingroup
+\justifying
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.55\baselineskip}
+
+\section{Why this chapter exists}
+
+Every benchmark paper carries a limitations section. Most of them read the way an insurance form reads: defensive, positioned near the end, worded to concede as little as possible while staying technically true.
+
+This chapter is not that.
+
+While the policy experiments were still running, I gave the implementation to a fellow student and asked for the one thing an author cannot reliably do alone: read the code against Chapters~\ref{chap:system} and~\ref{chap:methodology} and report where the two disagree. Much of it matched. A fair amount did not.
+
+I then worked through the returned list item by item, reproducing each one against the code and the stored configurations before accepting it. Everything set out below is something I confirmed for myself. The discrepancies sort themselves into two groups whose asymmetry carries more weight than any single item in either.
+
+The first group made the benchmark easier than described. Products designated as unseen for a given task stand on the shelves of that task's training scenes as distractors. The acceptance region for a completed pick is a forty-centimetre cube. The side-effect check that Equation~\ref{eq:strict-success} writes as a product over every non-target object runs, for the basket task, only over objects on the target shelf. The robot is spawned 1.4~metres in front of the correct fixture, already facing it, at the start of every episode of every task.
+
+The second group made it harder, and has fewer entries. The evaluation client executes a fifty-step action chunk before observing the scene again. Two elements of the action vector are zeroed before every step, and one of them is the torso lift.
+
+None of this was pleasant to write down. Taken together, though, the two lists sharpen the empirical result rather than dissolving it. Section~\ref{sec:audit-survives} works through why.
+
+A note on what follows. Each entry states the claim as the dissertation makes it, states what the implementation does, and then says what has to change in the earlier chapters. An entry without that last part would be decoration, and there are none here.
+
+\section{Discrepancies that loosened the test}
+
+\subsection*{The unseen items were never unseen}
+
+\ref{fig:asset-library} splits the product set into training items and task-specific test items, and Section~\ref{sec:scenarios} describes the US\&I condition as an out-of-distribution task--item composition: a known object paired with a skill it was never demonstrated on. That description is accurate as far as it goes. It understates how generous the condition is.
+
+The scene configurations tell the fuller story. Each training shelf is populated from three labelled groups---items that will be targets, items reserved as future test targets, and items that are never targets at all---and all three sit on the same boards, in the same scenes, from the first training episode onward. Vanish Stain Remover is on the shelf while the policy learns to pick Nivea Body Milk. It is rendered, in context, at the correct scale, under the same lighting, across several hundred episodes. The only thing it has never been is named.
+
+That changes how the near-zero US\&I column should be read. The condition is not recognition of a novel category. It is not even recognition of a familiar object in an unfamiliar rendering. It is the recomposition of two things the policy has already observed together, and Octo scores zero on all three applicable tasks under it while $\pi_0$ retains one percent on floor recovery. Whatever those numbers measure, it is not visual novelty. The finding is harder to explain away than the original framing suggested, not easier.
+
+\subsection*{The robot never has to find the shelf}
+
+Chapter~\ref{chap:introduction} motivates the benchmark partly on the grounds that aisles restrict base motion and that a mobile base stopping a few centimetres early can turn a reachable grasp into a failure. The second half of that sentence is tested. The first half is not.
+
+Episode initialisation places the robot at the active fixture's pose offset by 1.4~metres along the fixture's own facing direction, with its yaw set to look at the fixture. Randomisation is then applied on top: for the basket task, up to 0.2~metres of retreat, a quarter of a metre of lateral offset either way, and roughly twenty-two degrees of yaw. Board transfer uses wider bounds, close to half a metre on both axes. Those numbers describe local placement error. They do not describe navigation.
+
+So no episode in the reported experiment requires the policy to traverse an aisle, choose between two fixtures at a distance, or recover from a wrong turn. The store around the robot is scenery, and its role in the experiment is to change what the shoulder cameras see, not where the robot has to go. Section~\ref{sec:results-shift} attributes part of the unseen-scene loss to changed navigation geometry; that attribution should be withdrawn. What changes between conditions is the visual context and the last metre of approach, and the twenty-nine-point drop on board transfer has to be explained inside that smaller space.
+
+The randomisation bounds also differ per task, which the methodology chapter does not say. Board transfer is initialised over roughly twice the area of basket picking. In-domain difficulty is therefore not constant across the columns of \ref{tab:main-results}, and small differences between task columns within one model should not be read as differences in skill difficulty alone.
+
+\subsection*{The door tasks were never moved}
+
+This is the entry that costs the most.
+
+Section~\ref{sec:results-shift} observes that $\pi_{0.5}$ keeps 78\% of its door closing against an in-domain 91\% while its board transfer collapses from 56\% to 27\%, and reads that contrast as evidence that articulated fixtures tolerate visual and layout shift better than small-object manipulation. The evaluation scripts do not support the comparison. Pick-and-place is evaluated on scene directories generated from a disjoint seed family, so its unseen condition genuinely changes store layout, aisle structure and surface appearance together. The door tasks are evaluated on the same scene directory used to collect their training demonstrations. Only the episode seed and the initial-pose seed differ, which varies textures and starting pose and nothing else.
+
+The fridge configuration is narrower still. It generates a single scene. One layout, for training and for testing, across both the opening and the closing task.
+
+A configuration file for unseen fridge scenes does exist, and it is never called by the evaluation script. Its random seed is also 42, the same value the training configuration uses, and because scene seeds are formed by adding an index to that value its first generated scene would have been the training scene itself.
+
+The defensible statement is narrower and duller than the one I set out to make: under a weaker shift, door tasks lose less. Whether they would still lose less under a matched shift is untested. The mechanism proposed in Chapter~\ref{chap:results}---larger and more consistent contact geometry, an instruction that never names a product---survives as a hypothesis with an experiment attached.
+
+\subsection*{The side-effect check is narrower than the equation}
+
+Equation~\ref{eq:strict-success} writes collateral damage as a product over every non-target object in the scene, and Chapter~\ref{chap:system} argues at some length that collateral motion is part of task correctness rather than a cosmetic defect. I still believe the argument. The implementation is weaker than it.
+
+For the basket task the check iterates only over products on the target shelf, with a comment in the source explaining that this is done to speed up evaluation. Knock a can off a neighbouring fixture on the way past and the episode can still succeed. The tolerance is also looser than the text implies: displacement is tested with an absolute tolerance of 0.1 in position and the same value on the quaternion components, so a neighbour has to move ten centimetres before it counts as disturbed.
+
+Equation~\ref{eq:strict-success} has been corrected in Chapter~\ref{chap:methodology} to range over the target fixture's neighbours rather than the whole scene, and the tolerance is now stated. The consequence for the results is small but it runs one way: the reported success rates are, if anything, slightly generous.
+
+\subsection*{The acceptance region is a forty-centimetre cube}
+
+Chapter~\ref{chap:system} reports a target-position threshold of 0.2 in simulator units, with a 0.25 specialisation for one product, and describes the docstring language of Euclidean distance. The check is not a Euclidean distance. It is an axis-aligned box test applied independently on each coordinate, so the threshold acts as a half-extent and the region is a cube 0.4~metres on a side, centred on a pose attached to the robot's own base rather than to any fixed point in the store. Board transfer is tighter, at roughly ten centimetres horizontally, and defines its goal as the item's own starting position raised by the 0.397~metre clearance between boards.
+
+Naming this changes no number in \ref{tab:main-results}. It changes what the numbers are numbers of, which matters for anyone comparing against a physical system where a forty-centimetre tolerance would be unusable.
+
+\subsection*{Fewer stores than the documentation claims}
+
+Scene seeds are generated by adding an index to a configuration's base seed, so two configurations with the same base seed and the same fixture lists produce the same layouts. Three pairs of configurations share a seed where they were plainly meant to differ. Both board-transfer configurations for one product use seed 4, so that product has five distinct layouts rather than ten. Both floor-recovery configurations use seed 56, with the same result. Two board-transfer configurations for different products both use seed 44, so those products were trained and tested on shared stores. A further pair overlaps by one scene where their seed ranges touch.
+
+Basket picking is unaffected and has the twenty distinct layouts its documentation claims.
+
+The effect is to reduce the layout diversity behind several of the training corpora, which makes the in-domain scores slightly easier to obtain and the unseen-scene drop slightly easier to produce. Both directions favour the reported conclusion, which is not a reason to leave the seeds unfixed, and Chapter~\ref{chap:conclusion} lists the correction among the things a rerun should carry.
+
+\subsection*{Two seed streams that are actually one}
+
+Chapter~\ref{chap:system} presents separate layout and arrangement seeds as an audit mechanism: change the products while holding the aisles fixed, or the reverse. The generator does build two seed sequences. It builds them by adding an index to the same base value twice, and every configuration in the release enables both randomisation flags, so the two sequences are element-wise identical and no experiment in this dissertation has ever separated them.
+
+The capability is one configuration field away from being real. It is not real now, and the claim in Chapter~\ref{chap:system} has been softened accordingly.
+
+\section{Discrepancies that tightened it}
+
+\subsection*{Fifty steps of blindness}
+
+The evaluation client asks the policy server for an action chunk, then steps the environment through every action in that chunk before constructing the next observation. The Octo server returns fifty. With episode budgets between 500 and 1000 steps depending on the task, a policy therefore sees the scene somewhere between ten and twenty times across an entire episode, and spends the intervening fifty simulator steps executing a plan it cannot revise.
+
+Chapter~\ref{chap:results} explains the dominance of grasp failures by pointing at the demonstration corpus, which contains only successful executions and therefore shows the policy no route back from a small error. That explanation is still reasonable. It is no longer the only one on the table. A policy that has learned perfectly well how to correct a wrist offset cannot correct it if it will not receive another image for fifty steps, and the two accounts predict different outcomes under an experiment that costs almost nothing to run: shorten the execution horizon and re-evaluate. Section~\ref{sec:ablations} now names it.
+
+The Octo server also runs with a history length of one, while Appendix~\ref{app:training-results} records that the model was trained with two history observations. If the reported runs used the released server configuration, then Octo was evaluated under an observation regime it was not adapted to, and its numbers in \ref{tab:main-results} are a lower bound on what that checkpoint can do. I have not been able to establish which configuration produced the reported figures, and say so rather than guess.
+
+\subsection*{The torso never moves}
+
+Chapter~\ref{chap:system} lists a torso command among the action dimensions and describes the prismatic torso joint as the mechanism by which the Fetch changes its vertical reach. Neither statement holds in the reported experiment.
+
+Episode initialisation sets the torso lift to zero, and the source retains the previous non-zero value as a comment beside it. The evaluation client then zeroes two elements of every action before stepping the environment, and because the body controller commands absolute joint positions rather than increments, one of those elements holds the torso at its lowest position for the entire episode. The other holds the head pan centred.
+
+So the robot cannot raise or lower its body at any point, in any task. Including floor recovery, which asks it to retrieve an object from the ground and return it to a shelf above waist height.
+
+This is worth pausing on, because Chapter~\ref{chap:results} treats the weakness of floor recovery as one of its more interesting findings and explains it in terms of whole-body positioning difficulty. The explanation is right and the mechanism is now specific: the vertical span of the task exceeds what a fixed-torso arm can comfortably cover, and no policy could have learned otherwise because no demonstration ever moved the torso either. Octo's one percent and $\pi_{0.5}$'s twenty-one percent are scores on a harder task than the one the text describes.
+
+\section{Descriptions that do not match the code}
+
+Three further gaps change no result but would mislead anyone building on this system.
+
+The tensor field does not orient shelves. Chapter~\ref{chap:system} says a shelf aligns to the interpolated principal direction; the placement routine instead tests whether the local principal direction falls within roughly thirty-seven degrees of a coordinate axis and, if it does, places an axis-aligned shelf. The field is a gate, not a protractor. The interpolation code exists in the source as a commented-out block, the field is queried lazily at candidate positions rather than precomputed over a grid, and the decay coefficient used in every configuration is 12, which gives an effective influence radius of roughly thirty centimetres and makes the aggregation behave much more like a nearest-contour lookup than like the smooth blending the text implies. Chapter~\ref{chap:system} has been rewritten to describe the gate.
+
+The action vector has thirteen elements, not eleven. The body block carries three joints---torso lift, head pan, head tilt---rather than the single torso command Equation~\ref{eq:action-vector} lists. Two of the three are pinned, as described above.
+
+Three capabilities the system chapter describes are not in the implementation: the Poisson depletion process, vertical stacking of products, and the mesh simplification pipeline that generates and selects candidates by Chamfer distance against triangle count. The simplified assets exist; the tooling that produced them does not. \ref{fig:asset-pareto} was therefore produced outside the benchmark itself. A figure showing a shelf under progressive depletion has been cut from Chapter~\ref{chap:system} rather than annotated: its subject was neither released nor used, which left it illustrating nothing the rest of the dissertation relies on.
+
+One smaller item belongs here for honesty rather than consequence. The evaluation script requests thirty trials per condition. The per-item values in Appendix~\ref{app:training-results} are consistent with one hundred and inconsistent with thirty, so the reported figures almost certainly come from a modified invocation; a reader running the script as released will not reproduce the sample size.
+
+\section{What survives}
+\label{sec:audit-survives}
+
+Line the two lists up and the shape of the thing becomes clear.
+
+Almost everything that diverged on the perception and generalisation axes diverged toward leniency. The unseen items were visible throughout training. The unseen scenes for half the task suite were the training scenes. The robot began each episode aimed at the right fixture from close range. The success box was generous, the collateral check partial, the layout pool smaller than intended. If the benchmark had been built exactly as Chapters~\ref{chap:system} and~\ref{chap:methodology} describe, every one of those conditions would have been harder.
+
+The scores would have gone down.
+
+They were already near zero across the strongest shift for three of four models, and zero everywhere on both composite tasks. A negative result obtained under conditions more forgiving than advertised is a stronger negative result, not a weaker one, and the central claim of Chapter~\ref{chap:results}---that generalist pretraining plus a few hundred demonstrations per combination does not produce dependable retail behaviour under this protocol---comes through the audit intact and with less room to argue with.
+
+What does not come through intact is the diagnostic layer, and that is the real cost. Two of the more quotable interpretations in Chapter~\ref{chap:results} rested on comparisons the implementation did not actually run. Articulated fixtures may or may not be more robust to shift; the door tasks were never subjected to the same shift, so the contrast measures the protocol rather than the fixtures. Grasp may dominate the failure distribution because planner-shaped demonstrations teach no recovery, or because a policy blind for fifty steps at a time has no opportunity to recover regardless of what it learned. Both readings were offered with the appropriate hedging in the original text. Neither was hedged against the possibility that the experiment had not been set up to distinguish them at all.
+
+There is a third thing the audit produced that I did not expect, and it is the most useful. The composite evaluation already computes what Chapter~\ref{chap:results} says future work should measure. Each composite environment returns a per-subtask completion flag and a normalised count of subtasks reached, alongside the binary success value that became the column of zeros in \ref{tab:main-results}. The information needed to distinguish a policy that fails on the first pick from one that reaches the final release was recorded and then discarded at the reporting stage. Recovering it requires no new simulation.
+
+\section{What a corrected rerun would cost}
+
+It is fair to ask why the experiment was not simply rerun. The honest answer has two parts, and only one of them is about time.
+
+The mechanical corrections are cheap. Fixing the duplicated seeds, generating genuine unseen-scene directories for the four door tasks, restoring the torso to the action space, unpinning the head, and shortening the execution horizon are all configuration or single-line changes. Regenerating the affected scene sets takes minutes. Re-collecting demonstrations for the door tasks, at 248 successful episodes each, is the same order as the eight hours the original corpus required on one V100.
+
+Re-adaptation is what makes it expensive. The four policies consumed roughly three, four, eight and eight days on their respective allocations, most of them across eight A100s, and any change to the action space invalidates all four checkpoints at once. Restoring the torso dimension is not a re-evaluation; it is a retraining. A corrected study is therefore not a revision of this one but a successor to it, and it should be designed as such rather than assembled by patching.
+
+That leaves a choice about what to report now, and I have taken the conservative option throughout: keep the numbers, state precisely what protocol produced them, withdraw the interpretations the protocol cannot carry, and specify the experiments that would settle the questions left open. Chapter~\ref{chap:conclusion} closes on those.
+
+\endgroup

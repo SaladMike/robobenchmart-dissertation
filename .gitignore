@@ -1,0 +1,33 @@
+# LaTeX 编译产物（全部集中在 build/，含归档副本）
+build/
+
+# 若将来改为在源码目录内编译，以下中间文件同样忽略
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.synctex.gz
+*.toc
+*.xdv
+*.run.xml
+*.bcf
+
+# 编辑器与系统
+.DS_Store
+*.swp
+
+# 独立仓库：另一台机器单独 clone https://github.com/emb-ai/RoboBenchMart.git
+213/
+
+# 编译输出与临时目录
+output/
+tmp/
+
+# 大体积参考 PDF（限根目录，assets/figures 下的插图 PDF 不受影响）
+/2511.10276v2.pdf
+/Dissertation_Revised_njz_19072026.pdf

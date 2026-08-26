@@ -1,0 +1,44 @@
+\chapter{Task and Dataset Specifications}
+\label{app:tasks}
+\begingroup\justifying
+\setlength{\parindent}{2em}\setlength{\parskip}{0.5\baselineskip}
+
+\section{Atomic tasks}
+\begin{longtable}{p{0.17\textwidth}p{0.28\textwidth}p{0.43\textwidth}}
+\caption{Operational task definitions.}\label{tab:task-definitions}\\
+\toprule Task & Objective & Principal success conditions\\\midrule\endfirsthead
+\toprule Task & Objective & Principal success conditions\\\midrule\endhead
+Pick to basket & Put a named shelf product in the cart. & A matching target is inside the basket; non-target stock is not displaced; the robot is static.\\
+Pick from floor & Return a floor product to its shelf region. & The product is near the correct group; other items remain in place; the robot is static.\\
+Board to board & Move a named product between shelf levels. & The target reaches the destination board; neighbours are not moved; the robot is static.\\
+Open fridge & Open the designated refrigerated door. & The articulation passes the open threshold and the robot is static.\\
+Close fridge & Close an initially open refrigerated door. & The articulation passes the closed threshold and the robot is static.\\
+\bottomrule\end{longtable}
+
+The code also contains vertical-showcase door variants. These share the articulation skill family but address one of four named doors. Their presence explains why software-level task counts can exceed the five atomic columns in the main result table. Composite tasks either repeat pick-to-basket for three products or execute open, pick and close. An oracle supplies the atomic sequence; the headline metric gives no partial credit.
+
+\section{Item split}
+\begin{table}[H]\centering
+\begin{tabular}{p{0.22\textwidth}p{0.34\textwidth}p{0.34\textwidth}}
+\toprule Task & Training items & Task-specific test items\\\midrule
+Pick to basket & Nivea Body Milk; Honey Stars; Fanta & Nestle Cereals; SLAM luncheon meat\\
+Board to board & Nestle Cereals; Duff Beer Can; Vanish & Nivea Body Milk; Fanta\\
+Pick from floor & Heinz Beans; SLAM luncheon meat & Vanish; Duff Beer Can\\
+\bottomrule\end{tabular}
+\caption{Product assignment. A test product can have appeared in another training task.}\label{tab:item-split}
+\end{table}
+
+\section{Policy interface and scale}
+\begin{table}[H]\centering
+\begin{tabular}{lll}\toprule
+Field & Shape or dimension & Description\\\midrule
+Left RGB & $256\times256\times3$ & Shoulder camera\\
+Right RGB & $256\times256\times3$ & Opposite shoulder camera\\
+Wrist RGB & $128\times128\times3$ & Gripper-proximal camera\\
+Language & Variable & Task, item and fixture instruction\\
+Proprioception & Robot dependent & Joint positions and velocities\\
+Action & 13 & Arm (7), gripper (1), body (3), base (2)\\
+\bottomrule\end{tabular}\caption{Core observation--action interface.}\end{table}
+
+The study reports 248 successful demonstrations per configured triplet, 2,976 trajectories and 1,401,169 transitions. Raw trajectories use HDF5; scene and episode metadata retain reconstruction seeds. Download size and conversion tooling should be checked against the current release.
+\endgroup

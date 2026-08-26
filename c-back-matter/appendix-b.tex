@@ -1,0 +1,115 @@
+\chapter{Training and Detailed Evaluation}
+\label{app:training-results}
+\begingroup\justifying
+\setlength{\parindent}{2em}\setlength{\parskip}{0.5\baselineskip}
+
+\section{Fine-tuning configurations}
+
+\begin{table}[H]\centering\small
+\begin{tabular}{lrl}\toprule
+Model & Parameters & Learning rate\\\midrule
+Octo & 93M & official default, not recorded\\
+SmolVLA & 450M & official default, not recorded\\
+$\pi_0$ & 3.3B & AdamW, cosine $2.5\times10^{-5}\rightarrow2.5\times10^{-6}$\\
+$\pi_{0.5}$ & 3.3B & AdamW, cosine $2.5\times10^{-5}\rightarrow2.5\times10^{-6}$\\
+\bottomrule\end{tabular}
+\caption{Model scale and optimiser schedule. All four were fully fine-tuned with an action horizon of 50.}\end{table}
+
+Step counts, batch sizes, hardware and wall-clock durations are given in the methodology chapter and are not repeated here. Two learning rates are missing rather than omitted: the Octo and SmolVLA runs used their official defaults and the values were not written down, which is a small gap in the record rather than a deliberate omission. Octo additionally uses two history observations and a continuous action head.
+
+\section{Per-item results}
+``Seeds'' re-runs the stored collection configurations unchanged, ``Pose'' varies only the robot's start, and ``Layout'' adds new store plans and materials. Showcase columns are retained from the detailed experiment. The four models are stacked in one table so that a column can be read down as well as across.
+
+\begin{table}[H]\centering\scriptsize
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{llrrrrrrrrrrrr}\toprule
+&&\multicolumn{3}{c}{Board}&\multicolumn{2}{c}{Open}&\multicolumn{2}{c}{Close}&\multicolumn{2}{c}{Floor}&\multicolumn{3}{c}{Basket}\\
+\cmidrule(lr){3-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}\cmidrule(lr){10-11}\cmidrule(lr){12-14}
+Model&Mode&Duff&Nestle&Vanish&Fridge&Show.&Fridge&Show.&Heinz&SLAM&Fanta&Nivea&Stars\\
+\midrule
+\multirow{3}{*}{Octo}
+ & Seeds &58&35&30&46&3&70&51&58&70&37&57&49\\
+ & Pose &30&16&17&54&0&59&30&2&0&18&26&19\\
+ & Layout &2&1&0&45&0&43&9&1&1&1&2&2\\
+\midrule
+\multirow{3}{*}{SmolVLA}
+ & Seeds &0&0&0&30&0&31&4&0&0&0&0&0\\
+ & Pose &0&0&0&19&0&25&1&0&0&0&0&0\\
+ & Layout &0&0&0&25&0&23&2&0&0&0&0&0\\
+\midrule
+\multirow{3}{*}{$\pi_0$}
+ & Seeds &47&22&20&96&38&100&96&55&52&34&39&28\\
+ & Pose &33&11&14&95&26&100&90&26&16&13&17&13\\
+ & Layout &7&1&2&85&2&96&74&9&2&1&1&1\\
+\midrule
+\multirow{3}{*}{$\pi_{0.5}$}
+ & Seeds &92&60&63&100&35&100&96&86&90&82&89&82\\
+ & Pose &71&53&44&100&11&95&87&22&20&48&60&58\\
+ & Layout &45&23&12&98&0&97&59&8&0&37&36&19\\
+\bottomrule\end{tabular}
+\caption{Per-item success (\%) for all four models. Every column falls from Seeds to Layout.}
+\label{tab:per-item}
+\end{table}
+
+\begin{table}[H]\centering\small
+\begin{tabular}{llr}\toprule
+Task & Product & Pairing success (\%)\\\midrule
+Board transfer&Nivea&34\\ Board transfer&Fanta&7\\
+Floor&Duff&3\\ Floor&Fanta&2\\
+Basket&Nestle&7\\ Basket&SLAM&2\\\bottomrule
+\end{tabular}\caption{$\pi_{0.5}$ product-level Pairing results. The other three models score zero on every cell except $\pi_0$ on floor recovery.}\end{table}
+
+\section{Failure labels}
+The taxonomy records one label per unsuccessful episode. Annotation follows the execution chain and stops at the earliest failure that is sufficient to explain the outcome. Later consequences are retained in the rollout record but are not counted again. For example, choosing the wrong carton and then dropping it remains a \emph{target} error; the drop is downstream of the grounding mistake. \ref{tab:failure-label-definitions} gives the operational definitions used for this analysis.
+
+{\small
+\begin{longtable}{
+>{\RaggedRight\arraybackslash}p{0.13\textwidth}
+>{\RaggedRight\arraybackslash}p{0.40\textwidth}
+>{\RaggedRight\arraybackslash}p{0.38\textwidth}}
+\caption{The eleven earliest-primary failure labels.}
+\label{tab:failure-label-definitions}\\
+\toprule
+Label & Assigned when & Boundary against the next label \\
+\midrule
+\endfirsthead
+\multicolumn{3}{l}{\small\itshape \thetable\ continued}\\
+\toprule
+Label & Assigned when & Boundary against the next label \\
+\midrule
+\endhead
+\midrule
+\endfoot
+\bottomrule
+\endlastfoot
+
+\emph{task} & The behaviour belongs to a different operation than the one requested. & Right operation, wrong instance is \emph{target}. \\
+
+\emph{target} & The instruction is grounded to the wrong product, fixture or instance. & Takes precedence over anything that happens afterwards. \\
+
+\emph{move} & The base never establishes a usable approach to the correct fixture. & Once the base is usable, local misalignment is \emph{pregrasp}. \\
+
+\emph{pregrasp} & The end effector never reaches a pose from which acquisition could start. & If the gripper closes from a viable pose, use \emph{grasp}. \\
+
+\emph{grasp} & Acquisition is attempted but the target is never secured. & An object clearly lifted and then lost is \emph{drop}. \\
+
+\emph{drop} & The target is lifted, then slips before placement. & Loss at the final release is \emph{place}. \\
+
+\emph{displace} & Contact moves a non-target item past the side-effect tolerance. & An earlier wrong-target decision outranks this. \\
+
+\emph{preplace} & The target is held but the destination is never reached or aligned with. & A deliberately wrong destination is \emph{place-coord}. \\
+
+\emph{place-coord} & The held target is carried to the wrong destination. & Differs from \emph{preplace}, where the goal was right but unreachable. \\
+
+\emph{place} & The destination is reached but release or settling fails the predicate. & Earlier loss during transport is \emph{drop}. \\
+
+\emph{partial} & An articulated fixture moves the right way but stops short of the threshold. & Never reaching the handle is \emph{pregrasp} or \emph{grasp}. \\
+\end{longtable}}
+
+These labels support diagnosis, not a claim of observer-free ground truth. Several causes can interact within one rollout, and the earliest-primary rule deliberately hides some downstream damage. Its advantage is consistency: category totals refer to episodes rather than to every visible symptom.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{assets/figures/retail-vla-benchmark/failure_by_task.pdf}
+\caption{Earliest primary failure distribution by model and atomic task family. Door failures concentrate in \emph{grasp} and \emph{partial} for the $\pi$ models but in \emph{move} and \emph{pregrasp} for SmolVLA; \emph{place-coord} appears almost exclusively in floor recovery.}
+\label{fig:failure-by-tasktype}\end{figure}
+\endgroup

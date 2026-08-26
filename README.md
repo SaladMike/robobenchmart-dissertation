@@ -1,0 +1,20 @@
+# Benchmarking Vision-Language-Action Models for Mobile Manipulation in Retail Environments
+
+This project contains the LaTeX source for the candidate's dissertation on evaluating vision-language-action models for mobile manipulation in retail environments.
+
+## Build
+
+Compile `main.tex` with XeLaTeX/BibTeX, or with Tectonic 0.16.9:
+
+```text
+tectonic main.tex --keep-logs
+```
+
+## Required before submission
+
+- Fill the red fields in `dissertation-metadata.tex`.
+- Replace the provisional declaration pages with the current NTU EEE wording.
+- Disclose AI assistance truthfully under the rules applicable to the submission.
+- Verify every experiment number against the final paper, dataset and code revision.
+
+The generated PDF is a review draft, not a submission-ready signed copy.

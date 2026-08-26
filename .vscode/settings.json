@@ -1,0 +1,96 @@
+{
+  "latex-workshop.latex.outDir": "%DIR%/build",
+  "latex-workshop.latex.recipe.default": "lastUsed",
+
+  // 编辑器进程启动早于 TeX 安装，继承的 $PATH 不含 /Library/TeX/texbin。
+  // 故所有可执行文件均用绝对路径调用，并在 env 中显式补 PATH（latexmk 内部还会调用 xelatex/bibtex/kpsewhich）。
+  "latex-workshop.latex.tools": [
+    {
+      "name": "latexmk-xelatex",
+      "command": "/Library/TeX/texbin/latexmk",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-xelatex",
+        "-outdir=%OUTDIR%",
+        "%DOC%"
+      ],
+      "env": {
+        "PATH": "/Library/TeX/texbin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    {
+      "name": "xelatex",
+      "command": "/Library/TeX/texbin/xelatex",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-output-directory=%OUTDIR%",
+        "%DOC%"
+      ],
+      "env": {
+        "PATH": "/Library/TeX/texbin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    {
+      "name": "bibtex",
+      "command": "/Library/TeX/texbin/bibtex",
+      "args": ["%OUTDIR%/%DOCFILE%"],
+      "env": {
+        "PATH": "/Library/TeX/texbin:/usr/bin:/bin:/usr/sbin:/sbin",
+        "BIBINPUTS": "%DIR%:%DIR%/c-back-matter:"
+      }
+    }
+  ],
+
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "latexmk (XeLaTeX, 推荐)",
+      "tools": ["latexmk-xelatex"]
+    },
+    {
+      "name": "xe -> bib -> xe -> xe (手动全量)",
+      "tools": ["xelatex", "bibtex", "xelatex", "xelatex"]
+    }
+  ],
+
+  // 扩展自身调用的辅助工具，同样指向绝对路径
+  "latex-workshop.kpsewhich.path": "/Library/TeX/texbin/kpsewhich",
+  "latex-workshop.texcount.path": "/Library/TeX/texbin/texcount",
+  "latex-workshop.latexindent.path": "/Library/TeX/texbin/latexindent",
+  "latex-workshop.chktex.path": "/Library/TeX/texbin/chktex",
+  "latex-workshop.synctex.path": "/Library/TeX/texbin/synctex",
+
+  "latex-workshop.latex.autoBuild.run": "onSave",
+  "latex-workshop.latex.autoClean.run": "never",
+
+  // 内置 webview 标签页在 CodeBuddy CN 中渲染为空白，改用系统浏览器打开
+  // 扩展自带的 pdf.js 查看器（走本地 http 服务），支持保存后自动刷新且保留页面位置。
+  // 若想改回内置标签页用 "tab"；想用独立 PDF App 用 "external"。
+  "latex-workshop.view.pdf.viewer": "browser",
+
+  // 仅当上面 viewer 设为 "external" 时生效（当前未启用）
+  "latex-workshop.view.pdf.external.viewer.command": "/usr/bin/open",
+  "latex-workshop.view.pdf.external.viewer.args": ["-a", "Preview", "%PDF%"],
+  "latex-workshop.view.pdf.external.synctex.command": "/usr/bin/open",
+  "latex-workshop.view.pdf.external.synctex.args": ["-a", "Preview", "%PDF%"],
+
+  "latex-workshop.synctex.afterBuild.enabled": true,
+  "latex-workshop.message.log.show": false,
+  "latex-workshop.latex.watch.files.ignore": [
+    "**/build/**",
+    "**/*.bbl",
+    "**/*.aux"
+  ],
+
+  "files.associations": {
+    "*.tex": "latex"
+  },
+  "editor.wordWrap": "on",
+  "[latex]": {
+    "editor.rulers": [100],
+    "editor.tabSize": 2
+  }
+}
