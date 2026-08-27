@@ -9,14 +9,14 @@
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lrllrl}\toprule
 Model & Params & Adaptation & LoRA rank / $\alpha$ & Steps & Learning rate\\\midrule
-Octo & 93M & full fine-tuning & --- & 100{,}000 & official default\\
+Octo & 93M & full fine-tuning & --- & 100{,}000 & not recorded\\
 SmolVLA & 450M & LoRA & 64 / 64 & 100{,}000 & $1\times10^{-3}\rightarrow1\times10^{-4}$, cosine\\
 $\pi_0$ & 3.3B & LoRA & 16 / 32 & 30{,}000 & $2.5\times10^{-5}\rightarrow2.5\times10^{-6}$, cosine\\
 $\pi_{0.5}$ & 3.3B & LoRA & 16 / 32 & 30{,}000 & $5\times10^{-5}$, constant after warmup\\
 \bottomrule\end{tabular}}
 \caption{Model scale and adaptation recipe. All four ran on one RTX 4090 at batch size 8 with an action horizon of 50. For $\pi_0$ and $\pi_{0.5}$ the two LoRA ranks are the vision--language backbone and the action expert respectively.}\end{table}
 
-Wall-clock durations and the remaining schedule details are given in the methodology chapter and are not repeated here. LoRA targets the language expert's query and value projections plus the state and action projections in SmolVLA, and the Gemma attention and feed-forward blocks of both the backbone and the action expert in the two $\pi$ models, where EMA is disabled. Octo is fully fine-tuned because its official implementation offers no low-rank path, and it additionally uses two history observations and a continuous action head. The $\pi_{0.5}$ recipe is a community-validated configuration rather than an official default, which is worth recording because it is the one schedule here that no upstream author has endorsed.
+Wall-clock durations and the remaining schedule details are given in the methodology chapter and are not repeated here. LoRA targets the language expert's query and value projections plus the state and action projections in SmolVLA, and the Gemma attention and feed-forward blocks of both the backbone and the action expert in the two $\pi$ models, where EMA is disabled. Octo is the one model fully fine-tuned rather than adapted through low-rank updates, and it additionally uses two history observations and a continuous action head. The $\pi_{0.5}$ schedule was taken from a community configuration rather than from the model's own documentation; its provenance differs from the other three and is recorded here for that reason.
 
 \section{Per-item results}
 ``Seeds'' re-runs the stored collection configurations unchanged, ``Pose'' varies only the robot's start, and ``Layout'' adds new store plans and materials. Showcase columns are retained from the detailed experiment. The four models are stacked in one table so that a column can be read down as well as across.
