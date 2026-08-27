@@ -181,6 +181,10 @@
 
 
 % ======================== 论文前置部分（Front Matter） =======================
+% pagenumbering{gobble} 使 \thepage 为空，hyperref 会给这几页生成同名锚点
+% @page. 并触发 xdvipdfmx 的 "Object already defined" 警告。这段关闭页锚点，
+% 罗马数字编号开始时再恢复。
+\hypersetup{pageanchor=false}
 \pagenumbering{gobble}
 \input{c-front-matter/title-page}             % 论文封面
 \input{c-front-matter/originality}            % 原创性声明
@@ -195,6 +199,7 @@
 \clearpage
 
 \clearpage
+\hypersetup{pageanchor=true}                  % 恢复页锚点（见上方说明）
 \pagenumbering{roman}                         % 正文前使用罗马数字编号
 \setcounter{page}{1}                          % 从 i 开始
 \pagestyle{fancy}                             % 确保页码继续显示在右侧页脚
