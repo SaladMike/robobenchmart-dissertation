@@ -7,11 +7,11 @@ This dissertation reports original research carried out by the candidate. The re
 The candidate's contributions consist of the following work:
 
 \begin{enumerate}[leftmargin=*,itemsep=0.15\baselineskip]
-\item Construction of a reproducible mobile-manipulation evaluation environment for retail scenarios on ManiSkill3, covering simulator and robot configuration, asset acquisition and curation, procedural store-plan and shelf-arrangement generation, policy-server deployment and end-to-end integration of the evaluation client.
-\item Design and implementation of the inference and evaluation pipeline for vision-language-action (VLA) policies across five atomic task families---realised as seven task instances spanning pick-and-place and articulated-door manipulation---and two composite tasks whose subtask sequence is supplied by an oracle.
-\item Adaptation and comparative evaluation of four VLA policy families under the study's cumulative shift conditions---Pose, Layout and Pairing---together with the Seeds control that reruns the stored training configurations, at 100 trials per task--item--fixture triplet.
-\item Construction of the demonstration pipeline: anchor-based trajectory collection using screw-motion planning with an RRT-Connect fallback, environment-level acceptance testing of every candidate rollout, and storage of the resulting 2,976 successful episodes and 1,401,169 transitions with the seeds and configuration hashes needed to reconstruct them.
-\item Failure-mode analysis of 2,906 unsuccessful episodes under an earliest-primary labelling rule across eleven categories ordered by the stage of the manipulation pipeline at which the failure occurs, and reproduction and reporting of each discrepancy between the documented protocol and the experiment as executed.
+\item A reproducible retail mobile-manipulation environment on ManiSkill3: simulator and robot configuration, asset curation, procedural store-plan and shelf generation, policy-server deployment and evaluation-client integration.
+\item The inference and evaluation pipeline for vision-language-action policies, covering five atomic task families in seven task instances and two composite tasks decomposed by an oracle.
+\item Adaptation and evaluation of four policy families under the Pose, Layout and Pairing conditions and the Seeds control, at 100 trials per task--item--fixture triplet.
+\item The demonstration pipeline: anchor-based collection with screw-motion planning and an RRT-Connect fallback, acceptance testing of every rollout, and 2,976 episodes and 1,401,169 transitions stored with the seeds needed to reconstruct them.
+\item Failure-mode analysis of 2,906 unsuccessful episodes under an earliest-primary rule across eleven pipeline-ordered categories, and reproduction of each documented-versus-executed discrepancy.
 \end{enumerate}
 
 \vspace{0.5\baselineskip}
