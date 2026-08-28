@@ -3,13 +3,16 @@
 
 \noindent
 \begin{tabular}{>{$}p{2.5cm}<{$}p{10cm}}
-N, M & Store-floor dimensions in metres \\
-p_i & Vertex of a polygonal boundary \\
-u_i & Directed polygon edge vector \\
-\theta & Local edge orientation \\
-T_j(p) & Basis tensor associated with boundary sample $j$ \\
-T(p) & Aggregated tensor field at point $p$ \\
+\mathbf{p}_i & Vertex $i$ of a polygonal boundary \\
+\mathbf{u}_i & Directed edge from $\mathbf{p}_i$ to $\mathbf{p}_{i+1}$ \\
+\ell_i & Length of boundary edge $i$ \\
+\theta_i & Orientation of boundary edge $i$ \\
+\mathbf{T}_i & Basis tensor induced by boundary sample $i$ \\
+\mathbf{T}(\mathbf{x}) & Aggregated tensor field at floor point $\mathbf{x}$ \\
+\theta^{\star}(\mathbf{x}) & Preferred undirected orientation at $\mathbf{x}$ \\
 d & Spatial decay coefficient in tensor-field aggregation \\
-l & Length of a polygon edge \\
-P & Number of vertices in a polygon \\
+D & Maximum boundary-segment length after subdivision \\
+P & Number of vertices in a boundary polygon \\
+G & Number of queried floor cells in the analytical complexity estimate \\
+J & Number of subdivided boundary and obstacle samples \\
 \end{tabular}
