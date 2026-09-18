@@ -9,8 +9,8 @@
 
 ## 1. 论文与源码
 
-NTU EEE 硕士学位论文，*Benchmarking Vision-Language-Action Models for
-Mobile Manipulation in Retail Environments*。
+NTU EEE 硕士学位论文，*A Vision-Language-Action Benchmark for Mobile
+Manipulation in Retail Environments*。
 
 它做两件事：构建一个零售移动操作的仿真基准（程序化生成店面布局、任务层、
 基于运动规划的演示采集），然后用它评测四个通用 VLA 策略族（Octo、SmolVLA、

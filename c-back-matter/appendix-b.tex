@@ -9,7 +9,7 @@
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lrllrl}\toprule
 Model & Params & Adaptation & LoRA rank / $\alpha$ & Steps & Learning rate\\\midrule
-Octo & 93M & full fine-tuning & --- & 100{,}000 & not recorded\\
+Octo & 93M & full fine-tuning & --- & 100{,}000 & --- \\
 SmolVLA & 450M & LoRA & 64 / 64 & 100{,}000 & $1\times10^{-3}\rightarrow1\times10^{-4}$, cosine\\
 $\pi_0$ & 3.3B & LoRA & 16 / 32 & 30{,}000 & $2.5\times10^{-5}\rightarrow2.5\times10^{-6}$, cosine\\
 $\pi_{0.5}$ & 3.3B & LoRA & 16 / 32 & 30{,}000 & $5\times10^{-5}$, constant after warmup\\

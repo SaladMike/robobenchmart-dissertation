@@ -1,4 +1,4 @@
-# Benchmarking Vision-Language-Action Models for Mobile Manipulation in Retail Environments
+# A Vision-Language-Action Benchmark for Mobile Manipulation in Retail Environments
 
 This project contains the LaTeX source for the candidate's dissertation on evaluating vision-language-action models for mobile manipulation in retail environments.
 
