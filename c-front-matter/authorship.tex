@@ -1,22 +1,22 @@
 \section*{Authorship Attribution Statement}
 
-This dissertation reports original research carried out by the candidate. The research design, implementation, experiments, analysis and dissertation writing are the candidate's own work. Third-party models, software libraries, datasets and published methods used in the study are acknowledged through the relevant citations and licence terms.
+This dissertation reports research carried out by the candidate, reproducing, adapting and empirically evaluating the RoboBenchMart benchmark in ManiSkill3. The experimental design, single-GPU adaptation pipelines, failure-mode analysis, protocol audit, and dissertation writing are the candidate's own work. Upstream benchmark components, simulation environments, third-party models, software libraries and datasets are acknowledged through the relevant citations and licence terms.
 
 \vspace{0.5\baselineskip}
 
 The candidate's contributions consist of the following work:
 
 \begin{enumerate}[leftmargin=*,itemsep=0.15\baselineskip]
-\item Development of a ManiSkill3-based simulation framework for retail mobile manipulation, including procedural scene generation and asset preparation.
-\item Design and implementation of retail manipulation tasks and a shared pipeline for policy inference and evaluation.
-\item Adaptation and experimental evaluation of vision-language-action policies within the developed framework.
-\item Development of a demonstration collection and validation pipeline, and preparation of the dataset used in the study.
-\item Analysis of experimental results and failure modes, together with verification and documentation of protocol discrepancies following a separate peer code review.
+\item Reproduction, configuration, and verification of the RoboBenchMart simulation environment in ManiSkill3, including procedural scene generation and asset preparation.
+\item Design and implementation of an independent multi-tier evaluation framework separating in-domain pose perturbations, layout shifts, and unseen task--item pairings.
+\item Adaptation and experimental evaluation of four vision-language-action policy families (Octo, SmolVLA, $\pi_0$, $\pi_{0.5}$) under a single-GPU consumer hardware budget.
+\item Collection, validation, and curation of the demonstration dataset and unified policy observation--action interfaces.
+\item In-depth failure analysis across 2,906 unsuccessful episodes using an eleven-stage taxonomy, alongside an experimental protocol audit reproducing and documenting runtime discrepancies.
 \end{enumerate}
 
 \vspace{0.5\baselineskip}
 
-All work claimed as a contribution in this dissertation was carried out by the candidate. Contributions originating from cited third parties are not claimed as the candidate's own work.
+All work claimed as a contribution in this dissertation was carried out by the candidate. Contributions originating from cited third parties and the upstream RoboBenchMart project are acknowledged and not claimed as the candidate's own work.
 
 \vspace{0.5\baselineskip}
 
