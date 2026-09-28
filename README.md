@@ -18,3 +18,7 @@ tectonic main.tex --keep-logs
 - Verify every experiment number against the final paper, dataset and code revision.
 
 The generated PDF is a review draft, not a submission-ready signed copy.
+
+## Reproduction results
+
+- [Octo atomic-task evaluation, 2026-09-28](results/octo-2026-09-28/README.md) — 42 configurations, 30 episodes each, with the raw success-rate CSV and a comparison to the dissertation table.
