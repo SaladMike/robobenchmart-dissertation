@@ -7,20 +7,18 @@
 
 \section{Experimental logic}
 
-A benchmark is only as credible as its ability to isolate why an embodied system succeeds or breaks down. In robotics, that diagnostic link is notoriously fragile. A policy might fail because its visual encoder misinterprets a brand logo under novel lighting, because its motion planner clips the edge of a shelf, or simply because its low-level controller cannot track an aggressive trajectory. If the evaluation protocol aggregates these disparate failure modes into a single scalar success percentage, it conceals the very physical insights it was built to expose.
+A benchmark is only as informative as its ability to explain why an embodied system succeeds or breaks down. In robotics, that diagnostic link is notoriously fragile. A policy might fail because its visual encoder misinterprets a branded logo under novel lighting, because its motion planner clips the edge of a shelf, or simply because its low-level controller cannot track an aggressive trajectory. If the evaluation protocol aggregates these disparate failure modes into a single scalar success percentage, it conceals the very physical insights it was built to expose.
 
-Our methodology bridges the three core research questions to concrete, observable physical metrics. Addressing RQ1 demands verifying that procedural store plans are not just topologically diverse, but geometrically navigable and computationally feasible under batch simulation. Answering RQ2 requires establishing an automated demonstration pipeline capable of translating declarative task specifications into collision-free state--action trajectories, alongside a standardized multi-view interface for heterogeneous vision--language--action architectures. Finally, answering RQ3 requires a disciplined experimental ladder: evaluating learned policies across strictly controlled environmental perturbations, tracking multi-trial success rates, and subjecting failed rollouts to a fine-grained chronological failure taxonomy.
+Our methodology bridges the three core research questions to concrete, observable physical metrics. Addressing RQ1 demands verifying that procedural store plans are not just topologically diverse, but geometrically navigable and computationally feasible under batch simulation. Answering RQ2 requires establishing a standardized multi-view inference client capable of serving structurally divergent vision--language--action architectures under identical observation buffers. Finally, answering RQ3 requires a disciplined experimental ladder: evaluating released model checkpoints across strictly controlled environmental perturbations, tracking multi-trial success rates, and subjecting execution traces to rigorous protocol auditing.
 
-The fundamental experimental unit is an individual policy episode instantiated within a procedurally generated retail environment. Each episode is governed by five coordinates: the target task, the specified product, the destination fixture, the procedural environment seed, and the designated evaluation scenario. Throughout execution, the policy is treated as a black-box sensorimotor controller: it consumes only language prompts, synchronized RGB images, and proprioceptive state buffers. All privileged simulator state---exact rigid-body poses, mesh bounding boxes, contact normals, and joint velocities---remains encapsulated within ManiSkill3 for deterministic scene resetting and predicate verification.
+The fundamental experimental unit is an individual policy rollout instantiated within a procedurally generated retail environment. Each episode is governed by five coordinates: the target task, the specified product, the destination fixture, the procedural environment seed, and the designated evaluation scenario. Throughout execution, the policy operates as a sensorimotor controller: it consumes only language prompts, synchronized RGB images, and proprioceptive state buffers. All privileged simulator state---exact rigid-body poses, mesh bounding boxes, contact normals, and joint velocities---remains encapsulated within ManiSkill3 for deterministic scene resetting and predicate verification.
 
 Three methodological principles anchor this framework:
 \begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Common Demonstration Supervision}: All evaluated policies train on demonstrations harvested from the exact same procedural generator and motion planner.
-  \item \textbf{Invariable Terminal Predicates}: Identical spatial thresholds, velocity limits, and collateral disturbance checks govern success across every architecture.
-  \item \textbf{Oracle Horizon Decomposition}: Composite multi-stage tasks employ an identical privileged oracle to trigger prompt transitions, isolating motor execution and cumulative physical drift from high-level linguistic planning errors.
+  \item \textbf{Common Observation Contract}: Both evaluated policies interface with identical multi-view visual inputs (left shoulder, right shoulder, in-hand wrist) and proprioception buffers.
+  \item \textbf{Invariable Terminal Predicates}: Identical spatial thresholds, velocity limits, and collateral disturbance checks govern success across every evaluation.
+  \item \textbf{Strict Procedural Alignment}: Both models are evaluated across an identical suite of 42 atomic task configurations, spanning nominal conditions, local chassis noise, novel store environments, and compositional skill--item pairings.
 \end{itemize}
-
-Model adaptation recipes diverge where architectural differences make identical hyperparameters physically impossible. Rather than disguising these differences behind claims of a uniform parameter sweep, we document each training regime explicitly. The comparison that emerges is a rigorous audit of four distinct, complete adaptation pipelines evaluated under identical physical constraints.
 
 \section{Scene synthesis procedure}
 
@@ -38,9 +36,9 @@ This pipeline distinguishes two failure types: candidate rejection and scene rej
 
 Scene validity is corroborated through two distinct checks. First, hard geometric collision routines and minimum-clearance bounds ensure physical accessibility by construction. Second, simulation throughput tests benchmark GPU stepping performance across increasing fixture densities, ensuring that complex multi-shelf scenes remain computationally stable.
 
-\section{Trajectory sampling procedure}
+\section{Demonstration structure and data provenance}
 
-To supervise policy learning without manual teleoperation, the data pipeline configures and deploys an automated demonstration collector based on staged kinematic planning. Every atomic task is decomposed into a structured sequence of discrete operational phases: base navigation, pre-grasp alignment, grasp execution, object lift, transport, pre-place alignment, and gripper release.
+In the upstream RoboBenchMart design, demonstration collection relies on staged kinematic planning. Every atomic task is decomposed into a structured sequence of discrete operational phases: base navigation, pre-grasp alignment, grasp execution, object lift, transport, pre-place alignment, and gripper release.
 
 \begin{figure}[H]
     \centering
@@ -53,49 +51,58 @@ To supervise policy learning without manual teleoperation, the data pipeline con
 
 The proposed trajectory is executed in ManiSkill3 with full rigid-body dynamics enabled. If any segment collides, if kinematic limits are breached, or if the terminal success predicate is not satisfied, the entire episode is discarded, the simulator resets, and the sampling loop restarts.
 
-This all-or-nothing filtering guarantees that every saved demonstration is clean, collision-free, and successful. It also introduces an unavoidable selection bias. The resulting dataset consists exclusively of nominal, planner-optimal executions. It contains zero failed grasps, zero corrective re-trials, and zero recovery trajectories from disturbed base positions. Consequently, an imitation policy trained on this corpus learns how to execute a pristine plan, but receives no gradient signal showing how to recover when small controller errors push it off the nominal trajectory. This architectural limitation proves central to understanding the failure distributions documented in Chapter~\ref{chap:results}.
+This all-or-nothing filtering guarantees that saved demonstrations represent clean, collision-free executions. Crucially, it also introduces an inherent selection bias: the training corpus consists exclusively of nominal, planner-optimal paths. It contains zero failed grasps, zero recovery trajectories, and zero corrective realignment maneuvers. Consequently, imitation models trained on this corpus receive no supervision indicating how to return to a nominal trajectory when slight controller inaccuracies induce drift. In our local reproduction environment, the 2,976 demonstration metadata headers document this upstream training distribution, providing the foundational context for the released checkpoints evaluated herein.
 
-\section{Training protocol}
+\section{Model checkpoints and inference protocol}
 \label{sec:training}
 
-Fine-tuning modern Vision--Language--Action models is computationally demanding. State-of-the-art recipes commonly deploy multi-node clusters of NVIDIA H100 or A100 GPUs, fine-tuning billions of parameters over millions of steps with large batch sizes. In contrast, this project operated under the realistic computational limits of an independent academic researcher: a single consumer-tier NVIDIA RTX 4090 GPU equipped with 24~GB of VRAM.
+Rather than conducting local training runs from scratch, this dissertation focuses on evaluating publicly released, fine-tuned checkpoints provided by the upstream RoboBenchMart project. This experimental design isolates policy execution from the confounding stochasticity of unverified local training runs.
 
-Constraining compute to a single consumer GPU fundamentally shapes the experimental design:
+We evaluate two prominent, structurally divergent vision--language--action architectures:
+
+\begin{enumerate}[label=(\alph*),leftmargin=2.5em,itemsep=0.2em]
+  \item \textbf{Octo} (93M parameters): A transformer-based diffusion policy combining visual tokenizers, language conditioning, and a continuous diffusion action head. We evaluate the released fine-tuned checkpoint (\texttt{emb-ai/RoboBenchMart\_octo}, git revision \texttt{f3c8de450fc08fb5737d32442a2b1e6ab2993244}, checkpoint \texttt{1000000}). The policy is served via \texttt{scripts/octo\_server.py}. In our runtime audit, we confirmed that the evaluation server runs with an observation history window of one frame ($H_{\text{obs}} = 1$), commanding continuous action chunks of 50 steps.
+  \item \textbf{$\boldsymbol{\pi_{0.5}}$}: A state-of-the-art vision--language--action model integrating a PaliGemma vision--language backbone with a specialized continuous flow-matching action expert. We evaluate the released fine-tuned weights (\texttt{emb-ai/RoboBenchMart\_pi05}, git revision \texttt{533ad107347c3568dc2456d1586b665889f0ed18}), deployed via the OpenPI server architecture under configuration \texttt{pi05\_eval\_rbm}. The model processes current camera inputs and language prompts to generate 50-step action chunks.
+\end{enumerate}
+
+Both models execute in ManiSkill3 via client--server remote procedure calls. A crucial runtime distinction emerged during execution:
 \begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Strict Batch Clamping}: Memory overhead forced a uniform batch size of 8 across all four model families.
-  \item \textbf{Parameter-Efficient Adaptation}: To fit multi-billion-parameter backbones into 24~GB of memory without out-of-memory crashes, three of the four architectures relied on Low-Rank Adaptation (LoRA).
-  \item \textbf{Preset Step Budgets}: Models were trained for fixed step budgets ranging between 30,000 and 100,000 steps (approximately 2.0 to 2.5 hours of wall-clock time per run), rather than training to verified loss convergence or using validation-driven checkpoint selection.
+  \item \textbf{Octo Execution}: Completed under batch identifier \texttt{octo\_parallel\_20260928\_021558}. The first 17 configurations were executed serially; the remaining 25 configurations were executed across four independent, parallel Octo server instances.
+  \item \textbf{$\boldsymbol{\pi_{0.5}}$ Execution}: Completed under batch identifier \texttt{pi05\_parallel\_20261002\_105333}. Four independent simulation client processes ran concurrently, all interfacing with a single shared OpenPI server process on port 8000.
 \end{itemize}
 
-The four adapted architectures represent distinct structural paradigms in generalist robot learning:
-\begin{enumerate}[label=(\alph*),leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Octo} (93M parameters): A transformer-based diffusion policy combining visual tokenizers, language conditioning, and a continuous diffusion action head. Octo represents the compact baseline; it was fully fine-tuned for 100,000 steps at batch size 8 in approximately two hours, utilizing two history observation frames.
-  \item \textbf{SmolVLA} (450M parameters): A lightweight autoregressive VLA architecture. Adapted for 100,000 steps at batch size 8 using LoRA with rank $r = 64$ and $\alpha = 64$ applied to the query and value projections of the language expert and the state/action linear projections. Training employed a cosine learning rate decay from $1\times 10^{-3}$ to $1\times 10^{-4}$ over two wall-clock hours.
-  \item \textbf{$\boldsymbol{\pi_0}$} (3.3B parameters): A flow-matching vision--language--action model built on a PaliGemma backbone coupled with a specialized action expert. Adapted for 30,000 steps at batch size 8 using LoRA with rank $r_{\text{vlm}} = 16$ on the vision--language trunk and $r_{\text{act}} = 32$ on the action expert, targeting Gemma attention and feed-forward layers. Optimization used AdamW at $2.5\times 10^{-5}$ with a 1,000-step linear warmup and cosine decay to $2.5\times 10^{-6}$ over 2.5 hours. Exponential moving average (EMA) weights were disabled.
-  \item \textbf{$\boldsymbol{\pi_{0.5}}$}: An expanded architectural revision of the $\pi_0$ family, fine-tuned under an identical 30,000-step budget at batch size 8 with $r_{\text{vlm}} = 16$ and $r_{\text{act}} = 32$. Training utilized a learning rate of $5\times 10^{-5}$ with a 10,000-step warmup held constant thereafter.
-\end{enumerate}
+Because pseudorandom number consumption and asynchronous server queuing differ between these two execution frameworks, this evaluation should not be interpreted as a strictly paired, episode-by-episode comparison. Instead, it constitutes a standardized benchmark comparing the operational capabilities of both model pipelines across identical task configurations.
 
-All four policies operate with an action chunk horizon of 50 steps. Models were trained strictly on atomic demonstrations; no composite task demonstrations were provided during adaptation. Consequently, evaluating composite tasks tests whether policies can sustain multi-stage execution when guided solely by sequential oracle prompts.
+Episode execution is governed by explicit simulation horizon budgets: Board and Floor tasks enforce a maximum of 750 simulator steps; Basket picking enforces 600 steps; Refrigerator tasks enforce 500 steps; and Showcase tasks enforce 1,000 steps. In all cases, policies execute an action chunk of 50 steps open-loop before a new visual observation is returned.
 
-\section{Evaluation scenarios}
+\section{Evaluation scenarios and configuration matrix}
 \label{sec:scenarios}
 
-To evaluate model robustness systematically, we structured our experimental protocol into a four-tier evaluation ladder. Rather than testing only nominal performance or conflating all environmental variations into a single randomized test, each tier introduces an isolated, well-defined dimension of distribution shift:
+We evaluate both models across a comprehensive matrix of 42 atomic task configurations defined in \texttt{bash/eval\_model.sh}. The configurations are organized into four progressive distribution-shift tiers:
 
 \begin{enumerate}[label=\textbf{\Roman*.},leftmargin=2.5em,itemsep=0.3em]
-  \item \textbf{Seeds} (Exact In-Domain Reproduction): Re-executes the exact procedural configurations, fixture placements, and product coordinates used during demonstration collection. This isolates pure imitation fidelity from any environmental shift.
-  \item \textbf{Pose} (In-Domain Spatial Perturbation): Preserves the training store plans, textures, and product identities, but perturbs the robot's initial base placement in front of the fixture ($\pm 25$~cm translation, $\pm 22.5^{\circ}$ yaw). This tests whether the policy has memorized fixed open-loop trajectories or can adjust to local base positioning offsets.
-  \item \textbf{Layout} (Visual and Geometric Shift): Introduces completely unseen store floor plans alongside novel wall, floor, and ceiling texture sets. The target tasks and products remain familiar, but the surrounding visual clutter, aisle geometry, and lighting perspectives are entirely new.
-  \item \textbf{Pairing} (Compositional Skill Transfer): Evaluates zero-shot task--item composition. The policy is instructed to manipulate a target product that was present in the demonstration corpus for \emph{other} tasks, but was never demonstrated for the evaluated task. This tests whether the model can bind a known visual object to an independently learned manipulation primitive.
+  \item \textbf{Seeds} (12 configurations; \texttt{\_train} suffix): Re-instantiates the nominal store plans, fixture placements, and product arrangements used during demonstration collection. This tier tests in-domain imitation fidelity under nominal initial states.
+  \item \textbf{Pose} (12 configurations; \texttt{\_robo} suffix): Preserves the training store layouts, textures, and product identities, but perturbs the robot's initial chassis placement in front of the fixture ($\pm 25$~cm translation, $\pm 22.5^{\circ}$ yaw; seed 10000). This tests whether the policy can adjust to local base positioning offsets.
+  \item \textbf{Layout} (12 configurations; \texttt{\_uns} suffix; seed 42000): Introduces novel floor plans alongside unseen wall, floor, and ceiling texture sets. The target tasks and products remain familiar, but surrounding visual clutter and lighting perspectives change.
+  \item \textbf{Pairing} (6 configurations; \texttt{\_ood} suffix; seed 42000): Evaluates zero-shot task--item composition. The model is commanded to manipulate a target product that was present in training demonstrations for \emph{other} tasks, but was never demonstrated for the evaluated task (e.g., placing a Nivea cream box on a shelf board, or picking a Slam juice into a cart).
 \end{enumerate}
 
-Two important methodological caveats emerged during our post-evaluation protocol audit. First, in the door-manipulation tasks (Open and Close), the nominal Layout condition did not sample disjoint floor plans; it re-instantiated the training store layouts, varying only surface textures and initial base poses. Second, in the Pairing condition, while target products were withheld from task demonstrations, those items remained physically present on the shelves as background clutter during training scenes. Thus, Pairing tests compositional instruction binding rather than perceptual zero-shot recognition of an unseen physical object.
+Two important methodological caveats govern this matrix. First, door manipulation tasks (Open and Close) have no meaningful Pairing condition because their instructions address fixed fixture handles rather than product entities; these cells are marked not applicable (--). Second, our protocol audit revealed that in door tasks, the nominal Layout condition does not instantiate disjoint store plans; it reuses the training floor layouts, varying only textures and starting poses. Consequently, door Layout tests texture invariance rather than geometric transfer.
 
-Each task--item--fixture triplet is evaluated over 100 Monte Carlo rollouts. Under Pose and Layout, Basket and Board pool three triplets (300 trials per cell), while Floor, Open, and Close pool two triplets (200 trials). In the Pairing condition, door tasks are marked not applicable (--) because their instructions manipulate fixed fixture handles rather than product entities. Composite tasks evaluate sequential execution across 100 trials; because partial stage logs were discarded during aggregation, composite scores record full-chain success.
+Each configuration is evaluated over 30 independent Monte Carlo rollouts. Performance is aggregated across canonical task families:
+\begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
+  \item \textbf{Basket} (Pick to Basket; 3 items: Fanta, Nivea, Honey Stars): Pools 3 configurations under Seeds, Pose, and Layout (90 episodes each), and 2 configurations under Pairing (60 episodes; Nestl{\'e}, Slam).
+  \item \textbf{Board} (Board to Board; 3 items: Duff, Nestl{\'e}, Vanish): Pools 3 configurations under Seeds, Pose, and Layout (90 episodes each), and 2 configurations under Pairing (60 episodes; Nivea, Fanta).
+  \item \textbf{Floor} (Pick from Floor; 2 items: Heinz Beans, Slam): Pools 2 configurations under Seeds, Pose, and Layout (60 episodes each), and 2 configurations under Pairing (60 episodes; Fanta, Duff).
+  \item \textbf{Open} (Fridge and Showcase Open): Pools 2 configurations under Seeds, Pose, and Layout (60 episodes each).
+  \item \textbf{Close} (Fridge and Showcase Close): Pools 2 configurations under Seeds, Pose, and Layout (60 episodes each).
+\end{itemize}
+
+This yields 360 episodes under Seeds, 360 under Pose, 360 under Layout, and 180 under Pairing, totaling exactly 1,260 evaluated episodes per model (2,520 episodes in aggregate).
 
 \section{Success and side-effect checks}
 
-Evaluating retail manipulation requires monitoring the entire physical scene rather than checking whether a target coordinate changed. Knocking over adjacent cereal boxes to reach a jar of jam constitutes a severe commercial failure.
+Evaluating retail manipulation requires monitoring whole-scene integrity. Knocking over adjacent stock to reach a target item constitutes an operational failure.
 
 The evaluation engine enforces the strict composite predicate formulated in Equation~\ref{eq:predicate-success}:
 \begin{equation}
@@ -104,56 +111,40 @@ The evaluation engine enforces the strict composite predicate formulated in Equa
 \end{equation}
 The target item $o^*$ must settle within destination volume $G$, the robot platform must settle below velocity threshold $v_{\text{tol}} = 0.2$~m/s, and collateral objects $o \in \mathcal{N}(o^*)$ must not exceed translational ($\epsilon_p = 0.1$~m) or rotational ($\epsilon_q = 0.1$) displacement tolerances.
 
-Our audit surfaced the exact geometric boundaries implemented in code:
+Our audit surfaced the exact geometric tolerances implemented in code:
 \begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Basket Destination}: Evaluated as an axis-aligned bounding cube of $0.4\times 0.4\times 0.4$~meters anchored to the robot's base coordinates (expanded to $0.5$~m for Honey Stars). The collateral check $\mathcal{N}(o^*)$ monitors only items residing on the target fixture shelf, ignoring collisions with distant fixtures during base navigation.
-  \item \textbf{Board Transfer Destination}: Enforces a tight horizontal window ($\pm 0.1$~m) centered $0.397$~meters vertically above the item's initial pose, with scene-wide collateral monitoring.
+  \item \textbf{Basket Destination}: Evaluated as an axis-aligned bounding cube of $0.4\times 0.4\times 0.4$~meters anchored to the robot's base coordinates (expanded to $0.5$~m for Honey Stars). Collateral checking monitors only items residing on the target fixture shelf.
+  \item \textbf{Board Transfer Destination}: Enforces a horizontal window of $\pm 0.1$~m centered $0.397$~meters vertically above the source shelf, with scene-wide collateral monitoring.
   \item \textbf{Door Articulation}: Showcase doors must reach $1.57 \pm 0.2$~rad (open) or $0 \pm 0.2$~rad (close); refrigerator covers require $0.624 \pm 0.1$~rad.
 \end{itemize}
 
-Mean success rates are reported as percentages. To quantify transfer degradation between in-domain perturbations and environmental shifts, we compute absolute percentage-point differences:
+Success rates are reported as exact counts alongside percentages. Absolute percentage-point deltas quantify degradation between conditions:
 \begin{equation}
   \Delta S_{m,t} = S_{m,t,\mathrm{Pose}} - S_{m,t,\mathrm{Layout}}.
   \label{eq:degradation}
 \end{equation}
-Absolute point deltas are mathematically essential: when baseline performance hovers near zero, relative percentage ratios (e.g., $S_{\text{Layout}} / S_{\text{Pose}}$) become unstable, divide by zero, or exaggerate single-episode differences.
 
-\section{Failure annotation}
+\section{Outcome logging and artifact traceability}
 
-To uncover the physical mechanisms behind unsuccessful rollouts, we developed an 11-stage chronological failure coding taxonomy. Across the four model families and four evaluation scenarios, unsuccessful episodes were sampled for fine-grained inspection, yielding an archived diagnostic dataset of 2,906 annotated failure trajectories.
+To ensure complete experimental auditability without relying on opaque summaries, all 2,520 rollouts were logged with verified artifact manifests.
 
-The taxonomy tracks the temporal progression of a manipulation episode, assigning the failure to the earliest primary breakdown observed:
-\begin{enumerate}[label=(\arabic*),leftmargin=2.5em,itemsep=0.15em]
-  \item \textbf{Task}: The robot initiates an action sequence corresponding to an entirely different operational task.
-  \item \textbf{Target}: The robot approaches, aligns with, or attempts to manipulate an incorrect product entity on the shelf.
-  \item \textbf{Move}: Gross mobile-base navigation fails to approach the vicinity of the designated fixture.
-  \item \textbf{Pre-grasp}: The end-effector reaches the fixture but misaligns spatially or angularly relative to the target item.
-  \item \textbf{Grasp}: The gripper fingers close on the target object but fail to establish a stable friction hold, slipping off or missing contact.
-  \item \textbf{Drop}: The object is initially lifted but slips or is dropped during transport.
-  \item \textbf{Displace}: The manipulator or target object collides with and displaces neighboring stock beyond permissible tolerances.
-  \item \textbf{Pre-place}: Transport brings the object near the destination, but the arm fails to position the item over the receptacle.
-  \item \textbf{Place-coord}: The item is released outside the acceptable geometric bounding envelope of the destination.
-  \item \textbf{Place}: The item tumbles, bounces out, or destabilizes upon release.
-  \item \textbf{Partial}: Articulated door manipulation initiates but stalls prior to satisfying the required angular threshold.
-\end{enumerate}
+Each of the 42 configurations generates an execution log containing an explicit terminal summary (\texttt{Results: [list of successful episodes]}). Each rollout produces a full MP4 video recording, indexed by configuration and episode number. In the project repository, \texttt{episode\_outcomes.csv} maps every rollout to its terminal binary outcome, while \texttt{artifact\_manifest.csv} and \texttt{log\_manifest.csv} document the SHA-256 checksums, byte sizes, and paths of all 2,688 generated output files (1,344 files per model, including 1,260 MP4 videos stored via Git LFS).
 
-This taxonomy provides high diagnostic utility, but its methodological limits must be acknowledged. First, because labels are assigned using an earliest-primary criterion, subsequent errors occurring downstream of the initial fault are masked. Second, annotations were conducted by a single researcher without multi-annotator cross-validation. Consequently, failure proportions should be interpreted as revealing macroscopic mechanical bottlenecks rather than high-precision point probabilities.
+Our inspection identified a crucial data boundary: while video recordings and text logs are complete, container HDF5 files are exactly 800 bytes each, and JSON \texttt{episodes} arrays are unpopulated. Consequently, the archive does not preserve continuous per-step joint trajectories. Episode success indices are derived directly from verified runtime environment logs.
 
 \section{Validity considerations}
 \label{sec:validity}
 
 Evaluating robotic policies in simulation involves critical validity boundaries:
 \begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Construct Validity}: While the generator synthesizes large-scale $24\times 15$-meter supermarkets, policy evaluation does not exercise whole-store navigation. Every episode begins with the robot positioned 1.4~meters in front of the active fixture, facing it. Aisle geometry and surrounding shelving provide visual background and local approach constraints, but policies are never required to traverse store-scale routes. Furthermore, non-rigid deformable packaging, barcode scanning, barcode orientation, and dynamic human obstacles are excluded from the current simulation.
-  \item \textbf{Internal Validity}: The four baseline models reflect fixed-step adaptation recipes constrained by consumer hardware, rather than identical convergence points. Furthermore, two operational constraints dominate the control loop: (1) policies execute open-loop action chunks of 50 simulation steps between visual observations, blinding them to transient slip or contact events, and (2) the prismatic torso joint is clamped to zero throughout, permanently eliminating vertical whole-body reach.
-  \item \textbf{External Validity}: Rigid-body simulation in ManiSkill3 does not capture sensor noise, tactile deformation, packaging compliance, or motor backlash inherent to physical hardware. The benchmark evaluates algorithmic competence under simulated Newtonian dynamics, serving as an inspectable filter prior to physical deployment.
+  \item \textbf{Construct Validity}: While the generator synthesizes large-scale $24\times 15$-meter supermarkets, policy evaluation does not exercise whole-store navigation. Every episode begins with the robot positioned 1.4~meters in front of the active fixture, facing it. Aisle geometry and surrounding shelving provide visual background and local approach constraints, but policies are never required to traverse store-scale routes. Non-rigid packaging and human obstacles are excluded.
+  \item \textbf{Internal Validity}: The evaluated checkpoints represent public fine-tuned weights rather than locally trained models. Furthermore, two operational constraints dominate the control loop: (1) policies execute open-loop action chunks of 50 simulation steps between visual observations, blinding them to transient contact events, and (2) client logic explicitly overwrites the torso-lift and head-pan action elements with zero at every timestep ($q_{\text{torso}} = 0$), permanently locking the robot into an immobilized vertical spine.
+  \item \textbf{External Validity}: Rigid-body simulation in ManiSkill3 does not capture sensor noise, tactile compliance, packaging deformation, or motor backlash inherent to physical hardware.
 \end{itemize}
 
 \section{Protocol traceability and quality control}
 \label{sec:traceability}
 
-A foundational objective of this dissertation is establishing rigorous protocol hygiene. In complex simulation studies, empirical results frequently become uninterpretable because seed definitions, checkpoint weights, or sensor normalizations are lost across iterations.
-
-Achieving complete traceability requires an unbroken evidentiary chain linking every cell in a results table back to its specific model checkpoint, commit hash, scene JSON, camera buffer calibration, and step-level rollout log. While our archived results retain comprehensive cell summaries and verified transformation scripts, raw per-step trajectory files were not fully preserved. Future iterations of this benchmark must mandate automated logging of per-step simulator states, machine-readable failure annotations, and automated unit tests for success predicates. These protocols ensure that future evaluations remain fully auditable, reproducible, and extensible across the broader research community.
+A foundational objective of this dissertation is establishing protocol hygiene. By verifying execution logs against SHA-256 manifests, linking binary outcomes to archived Git LFS videos, and documenting the precise client-side control clamps, this framework ensures that all reported findings remain fully auditable and reproducible across the research community.
 
 \endgroup

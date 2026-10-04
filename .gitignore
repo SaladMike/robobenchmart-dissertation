@@ -23,6 +23,7 @@ build/
 
 # 独立仓库：另一台机器单独 clone https://github.com/emb-ai/RoboBenchMart.git
 213/
+RoboBenchMart_dissertation/
 
 # 编译输出与临时目录
 output/

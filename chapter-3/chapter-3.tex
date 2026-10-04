@@ -146,16 +146,16 @@ Task success predicates enforce strict spatial and kinematic constraints rather 
 \end{equation}
 For pick-and-place tasks, the target item $o^*$ must settle within the designated target volume $G$, the robot platform must come to a complete rest ($\lVert\mathbf{v}_{\text{robot}}\rVert_2 \leq 0.2$~m/s), and surrounding collateral objects $\mathcal{N}(o^*)$ must remain undisturbed within translational ($\epsilon_p = 0.1$~m) and rotational ($\epsilon_q = 0.1$) tolerances. In the basket task, $G$ is defined as a $0.4\times 0.4\times 0.4$~m bounding box centered on the onboard basket (expanded to $0.5$~m for large cereal packaging such as Honey Stars), and non-target monitoring is restricted to the active fixture shelf. For board transfer, $G$ specifies a $0.1$-meter horizontal boundary centered $0.397$~meters above the source shelf. For door tasks, success hinges on articulation metrics: showcase doors must reach $1.57 \pm 0.2$~radians (or return to $0 \pm 0.2$~rad for closure), whereas refrigerator covers require reaching $0.624 \pm 0.1$~radians (approximately $35.8^{\circ}$).
 
-Two composite tasks evaluate sequential horizon scaling:
+Two composite tasks are defined within the upstream RoboBenchMart benchmark to evaluate sequential horizon scaling:
 \begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
   \item \textbf{Pick three items}: Sequentially locate, grasp, and deposit three distinct target products into the mobile basket across successive prompt instructions.
   \item \textbf{Pick from fridge}: Execute a three-stage sequential chain: open the refrigerator door, extract the internal target beverage into the basket, and close the door.
 \end{itemize}
-To isolate motor execution and compounding trajectory errors from high-level reasoning failures, an algorithmic oracle monitors the subtask predicate and issues the subsequent natural-language prompt only upon verified completion of the preceding stage.
+In the upstream design, an algorithmic oracle monitors the subtask predicate and issues the subsequent natural-language prompt upon verified completion of the preceding stage. While these multi-stage tasks provide a conceptual framework for long-horizon planning, the empirical campaign in this dissertation restricts its scope strictly to atomic primitives, where baseline physical execution can be rigorously isolated and measured.
 
-\section{Training corpus}
+\section{Training corpus and demonstration provenance}
 
-Supervised training demonstrations were generated algorithmically across twelve canonical task--item--fixture configurations. The collector captured 248 verified trajectories per triplet, yielding a training corpus of 2,976 successful demonstrations and 1,401,169 state--action transitions. Demonstration harvesting, environment stepping, and multi-camera rendering consumed approximately ten wall-clock hours on a single NVIDIA RTX 4090 GPU.
+In the upstream RoboBenchMart framework, supervised training demonstrations were generated algorithmically across twelve canonical task--item--fixture configurations. The upstream collection pipeline captured 248 verified trajectories per triplet, yielding a nominal corpus of 2,976 demonstration episodes and 1,401,169 state--action transitions. In our reproduction environment, the repository preserves the twelve configuration index files and 2,976 episode metadata headers defining these trajectories. However, because local data containers store configuration metadata rather than full continuous state--action sensor arrays, this dissertation does not claim to have generated or trained on a local 1.4-million transition dataset. Instead, this metadata documents the training distribution of the publicly released fine-tuned checkpoints evaluated in Chapter~\ref{chap:results}.
 
 Each transition records three complementary sensory streams:
 \begin{itemize}[leftmargin=2.5em,itemsep=0.2em]

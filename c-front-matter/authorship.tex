@@ -1,17 +1,17 @@
 \section*{Authorship Attribution Statement}
 
-This dissertation reports research carried out by the candidate, reproducing, adapting and empirically evaluating the RoboBenchMart benchmark in ManiSkill3. The experimental design, single-GPU adaptation pipelines, failure-mode analysis, protocol audit, and dissertation writing are the candidate's own work. Upstream benchmark components, simulation environments, third-party models, software libraries and datasets are acknowledged through the relevant citations and licence terms.
+This dissertation reports research carried out by the candidate, reproducing, configuring, and empirically evaluating the RoboBenchMart benchmark in ManiSkill3. The experimental execution, independent 42-configuration evaluation design, empirical analysis of released Octo and $\pi_{0.5}$ checkpoints, protocol auditing, and dissertation writing are the candidate's own work. Upstream benchmark components, simulation assets, public model checkpoints, and software libraries are acknowledged through citations and relevant licensing terms.
 
 \vspace{0.5\baselineskip}
 
 The candidate's contributions consist of the following work:
 
 \begin{enumerate}[leftmargin=*,itemsep=0.15\baselineskip]
-\item Reproduction, configuration, and verification of the RoboBenchMart simulation environment in ManiSkill3, including procedural scene generation and asset preparation.
-\item Design and implementation of an independent multi-tier evaluation framework separating in-domain pose perturbations, layout shifts, and unseen task--item pairings.
-\item Adaptation and experimental evaluation of four vision-language-action policy families (Octo, SmolVLA, $\pi_0$, $\pi_{0.5}$) under a single-GPU consumer hardware budget.
-\item Collection, validation, and curation of the demonstration dataset and unified policy observation--action interfaces.
-\item In-depth failure analysis across 2,906 unsuccessful episodes using an eleven-stage taxonomy, alongside an experimental protocol audit reproducing and documenting runtime discrepancies.
+\item Reproduction, deployment, and verification of the RoboBenchMart simulation environment in ManiSkill3, including procedural scene loading and runtime client fixes.
+\item Design and execution of an independent multi-tier evaluation protocol across 42 atomic task configurations under Seeds, Pose, Layout, and Pairing distribution shifts.
+\item Rigorous empirical evaluation of two released vision--language--action checkpoints (Octo and $\pi_{0.5}$), completing 1,260 evaluated episodes per model (2,520 episodes total) with full logging and video artifact indexing.
+\item Systematic comparative analysis contrasting the operational dynamics of continuous hinge articulation (door opening and closing) against dense, high-clutter pick-and-place manipulation.
+\item Forensic protocol audit identifying critical runtime mechanisms that constrain physical policy success, including open-loop 50-step action chunking, immobilized torso kinematics, and scene reuse in door layout conditions.
 \end{enumerate}
 
 \vspace{0.5\baselineskip}
