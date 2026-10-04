@@ -50,7 +50,7 @@ We deliberately avoid collapsing these results into a single scalar ranking. Ave
 
 \section{RQ1: scene generation and computational usability}
 
-Research Question 1 asked whether procedural generation could synthesize structurally coherent, navigable store layouts without sacrificing simulation throughput. On this operational criterion, the simulation pipeline succeeds. The procedural generator creates diverse floor layouts across random seeds rather than repeatedly rearranging furniture within a fixed room. Each layout serializes to a clean JSON descriptor, instantiates in ManiSkill3, and preserves continuous 2.0-meter aisle corridors. Fixtures coalesce into natural longitudinal multi-unit runs rather than scattering chaotically across the floor (\ref{fig:store-generation}).
+Research Question 1 asked whether procedural store generation could synthesize structurally coherent, navigable store layouts without collapsing simulation throughput. On this operational criterion, the simulation pipeline succeeds. The procedural generator creates diverse floor layouts across random seeds rather than repeatedly shuffling furniture within a static room. Each layout serializes to a clean JSON descriptor, instantiates in ManiSkill3, and preserves continuous 2.0-meter aisle corridors. Fixtures coalesce into natural longitudinal multi-unit runs rather than scattering chaotically across the floor (\ref{fig:store-generation}).
 
 The orientation tensor field acts as an effective directional filter along Cartesian sweeps. Because the decay parameter is configured to $d = 12$, its effective sensing radius collapses to roughly thirty centimeters, meaning candidate fixtures align almost exclusively with the single nearest boundary contour. Shelves snap strictly to coordinate axes. The resulting regularity is functional and robust, providing structured retail aisles while eliminating collision bottlenecks.
 
@@ -59,15 +59,15 @@ Shelf population achieves dense visual realism while holding occupancy constant.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.68\textwidth]{assets/figures/retail-vla-benchmark/mesh_timing.pdf}
-    \caption{Simulation stepping duration across increasing shelving units for 50 simulation steps on an NVIDIA RTX 4090 (log--log scale). The original-mesh baseline stalls past four units due to polygon memory bottlenecks. In contrast, the simplified-mesh pipeline maintains stepping durations between 0.23 and 0.42~seconds from one unit up to 118 fully stocked units.}
+    \caption{Simulation stepping duration across increasing shelving units for 50 simulation steps on an NVIDIA RTX 4090 (log--log scale), as benchmarked in upstream RoboBenchMart~\cite{soshin2025robobenchmart}. The original-mesh baseline stalls past four units due to polygon memory bottlenecks. In contrast, the simplified-mesh pipeline maintains stepping durations between 0.23 and 0.42~seconds from one unit up to 118 fully stocked units.}
     \label{fig:mesh-performance}
 \end{figure}
 
-The decisive engineering test for RQ1 is plotted in \ref{fig:mesh-performance}. When populating shelves with raw, unoptimized retail meshes, simulation stepping times surge from 0.21~seconds for a single unit to 1.24~seconds for four units, beyond which memory bottlenecks halt execution. In sharp contrast, Pareto-optimized simplified meshes maintain stepping durations between 0.23 and 0.42~seconds from one unit up to a massive 118-unit supermarket scene on a single GPU.
+The decisive engineering test for RQ1 is plotted in \ref{fig:mesh-performance}, reported by RoboBenchMart~\cite{soshin2025robobenchmart} and verified during our local deployment. When populating shelves with raw, unoptimized retail meshes, simulation stepping times surge from 0.21~seconds for a single unit to 1.24~seconds for four units, beyond which memory bottlenecks halt execution. In sharp contrast, Pareto-optimized simplified meshes maintain stepping durations between 0.23 and 0.42~seconds from one unit up to a massive 118-unit supermarket scene on a single GPU.
 
 Crucially, \ref{fig:mesh-performance} illustrates an important design trade-off: below two units, raw meshes step marginally faster than simplified meshes due to the minor overhead of processing remeshed vertex buffers. As scene complexity scales, however, raw meshes overwhelm rendering memory while simplified proxies scale with remarkable flatness. Automated mesh decimation is the essential technical enabler that makes whole-store simulation practical on standard hardware.
 
-Geometric accessibility holds by construction, as colliding candidates are culled during sweeping. Navigability is verified in terms of clearance envelopes: because evaluation episodes initialize 1.4~meters in front of target fixtures, store-scale navigation is not exercised by the current manipulation policies.
+Geometric accessibility holds by construction, as colliding proposals are culled during sweeping. Navigability is verified in terms of clearance envelopes: because evaluation episodes initialize 1.4~meters in front of target fixtures, store-scale navigation is not exercised by the current manipulation policies.
 
 \section{RQ2: cross-paradigm inference and execution protocols}
 

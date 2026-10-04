@@ -5,91 +5,78 @@
 \setlength{\parindent}{2em}
 \setlength{\parskip}{0.55\baselineskip}
 
-\section{Experimental logic}
+\section{Experimental logic and reproduction philosophy}
 
 A benchmark is only as informative as its ability to explain why an embodied system succeeds or breaks down. In robotics, that diagnostic link is notoriously fragile. A policy might fail because its visual encoder misinterprets a branded logo under novel lighting, because its motion planner clips the edge of a shelf, or simply because its low-level controller cannot track an aggressive trajectory. If the evaluation protocol aggregates these disparate failure modes into a single scalar success percentage, it conceals the very physical insights it was built to expose.
 
-Our methodology bridges the three core research questions to concrete, observable physical metrics. Addressing RQ1 demands verifying that procedural store plans are not just topologically diverse, but geometrically navigable and computationally feasible under batch simulation. Answering RQ2 requires establishing a standardized multi-view inference client capable of serving structurally divergent vision--language--action architectures under identical observation buffers. Finally, answering RQ3 requires a disciplined experimental ladder: evaluating released model checkpoints across strictly controlled environmental perturbations, tracking multi-trial success rates, and subjecting execution traces to rigorous protocol auditing.
+This dissertation approaches benchmark reproduction not as a mechanical re-execution of published commands, but as an independent empirical investigation. Replicating an embodied manipulation testbed forces an encounter with reality: code repositories contain unstated assumptions, socket interfaces behave differently under load, and local computational budgets dictate how many rollouts can be stepped before deadlines expire. 
 
-The fundamental experimental unit is an individual policy rollout instantiated within a procedurally generated retail environment. Each episode is governed by five coordinates: the target task, the specified product, the destination fixture, the procedural environment seed, and the designated evaluation scenario. Throughout execution, the policy operates as a sensorimotor controller: it consumes only language prompts, synchronized RGB images, and proprioceptive state buffers. All privileged simulator state---exact rigid-body poses, mesh bounding boxes, contact normals, and joint velocities---remains encapsulated within ManiSkill3 for deterministic scene resetting and predicate verification.
-
-Three methodological principles anchor this framework:
+Our experimental methodology bridges the three core research questions to concrete, observable physical metrics:
 \begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Common Observation Contract}: Both evaluated policies interface with identical multi-view visual inputs (left shoulder, right shoulder, in-hand wrist) and proprioception buffers.
-  \item \textbf{Invariable Terminal Predicates}: Identical spatial thresholds, velocity limits, and collateral disturbance checks govern success across every evaluation.
-  \item \textbf{Strict Procedural Alignment}: Both models are evaluated across an identical suite of 42 atomic task configurations, spanning nominal conditions, local chassis noise, novel store environments, and compositional skill--item pairings.
+  \item \textbf{RQ1 (Simulation Feasibility and Usability)}: Verifying that procedural store plans are not just topologically diverse, but geometrically navigable, physically collision-free, and computationally stable when stepping complex scenes in ManiSkill3~\cite{taomaniskill3}.
+  \item \textbf{RQ2 (Cross-Architecture Inference and Concurrency)}: Designing and validating a standardized multi-view inference client capable of serving structurally divergent vision--language--action models under identical observation buffers, while auditing the operational characteristics of their server deployments.
+  \item \textbf{RQ3 (Empirical Competence and Control Bottlenecks)}: Deploying released, authoritative model checkpoints across a disciplined 42-configuration evaluation ladder spanning four distribution-shift tiers, recording 2,520 fully verified rollouts, and conducting a forensic autopsy of physical failure.
 \end{itemize}
 
-\section{Scene synthesis procedure}
+The fundamental experimental unit is an individual policy rollout. Each episode is governed by five explicit coordinates: the target manipulation task, the active product identity, the destination fixture, the procedural environment seed, and the designated distribution tier. The policy operates strictly as a sensorimotor controller: it consumes natural-language prompts, synchronized RGB images, and proprioceptive joint buffers. All privileged simulator state---exact mesh bounding boxes, contact normals, and joint velocities---remains encapsulated within ManiSkill3 for deterministic scene resetting and predicate verification.
 
-Every evaluation scene originates from a procedural configuration file defining boundary dimensions, primary fixture types, and random seed parameters. Generation proceeds sequentially:
-\begin{enumerate}[label=(\roman*),leftmargin=2.5em,itemsep=0.2em]
-  \item Perimeter walls and structural obstacles are placed, establishing boundary contours.
-  \item Orthogonal sweep vectors traverse the floor at fixed spatial strides. At each candidate point, the orientation tensor field (Equations~\ref{eq:basis-tensor}--\ref{eq:tensor-orientation}) is queried lazily against boundary segments.
-  \item Candidates aligning within roughly $37^{\circ}$ of a Cartesian axis are snapped to that axis; non-conforming or colliding candidates are rejected.
-  \item Accepted shelving units are concatenated longitudinally to form structured multi-unit runs, bounded by a mandatory 2.0-meter aisle passage envelope.
-  \item Support surfaces on accepted fixtures are detected, and retail products are populated onto regular Cartesian grids subject to bounded spatial noise ($\pm 1.5$~cm, $\pm 5^{\circ}$).
-  \item Wall, floor, ceiling, and fixture materials are sampled from independent texture pools.
-\end{enumerate}
+\section{Simulation deployment and runtime interfacing}
 
-This pipeline distinguishes two failure types: candidate rejection and scene rejection. A candidate rejection is normal; the generator discards the invalid footprint and continues sweeping. A scene rejection occurs when the generator fails to satisfy aisle clearance or fixture density targets within twenty restarts. In that event, the seed is abandoned. This distinction ensures that geometric impossibilities are filtered out before evaluation, preventing flawed scene synthesis from masquerading as a policy manipulation failure.
+Deploying the RoboBenchMart simulation environment locally required synthesizing multiple decoupled software subsystems into a coherent evaluation pipeline. 
 
-Scene validity is corroborated through two distinct checks. First, hard geometric collision routines and minimum-clearance bounds ensure physical accessibility by construction. Second, simulation throughput tests benchmark GPU stepping performance across increasing fixture densities, ensuring that complex multi-shelf scenes remain computationally stable.
+The physical substrate runs entirely in ManiSkill3, leveraging GPU-accelerated PhysX rigid-body dynamics and multi-camera batch rasterization. Scenes are instantiated from pre-generated procedural layout packages (\texttt{emb-ai/RoboBenchMart\_demo\_envs}, git revision \texttt{3dabfaaf9bdf2ba886264a1160dab68ac7043d00}), comprising 466 scene files totaling approximately 87.6~megabytes. Loading pre-synthesized JSON scene descriptions rather than generating store geometry on-the-fly inside the reset loop ensures that every rollout executes against frozen, reproducible geometry.
 
-\section{Demonstration structure and data provenance}
+The Fetch mobile manipulator interfaces with the simulator via a standardized sensory schema:
+\begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
+  \item \textbf{Bilateral Shoulder Views}: Dual RGB cameras mounted at the left and right shoulders ($256\times 256\times 3$), providing wide-angle stereoscopic visual coverage of the fixture workspace and surrounding shelf clutter.
+  \item \textbf{In-Hand Wrist View}: An eye-in-hand RGB camera ($128\times 128\times 3$) rigidly fixed to the gripper mount, capturing high-resolution local perspective during contact acquisition.
+  \item \textbf{Proprioceptive State}: Continuous joint positions and velocities across the 7-DOF arm, parallel gripper fingers, and mobile chassis.
+  \item \textbf{Task Prompt}: A natural-language string designating the active product and target fixture (e.g., \texttt{"pick the green tea box from the second shelf and place it in the basket"}).
+\end{itemize}
 
-In the upstream RoboBenchMart design, demonstration collection relies on staged kinematic planning. Every atomic task is decomposed into a structured sequence of discrete operational phases: base navigation, pre-grasp alignment, grasp execution, object lift, transport, pre-place alignment, and gripper release.
+Policies command the robot through a 13-dimensional continuous action vector:
+\begin{equation}
+  \mathbf{a}_t = \left[\mathbf{q}^{\text{arm}}_t,\ a^{\text{grip}}_t,\ \mathbf{q}^{\text{body}}_t,\ v^{\text{base}}_t,\ \omega^{\text{base}}_t\right] \in \mathbb{R}^{13},
+  \label{eq:action-vector-method}
+\end{equation}
+comprising seven arm joint target angles $\mathbf{q}^{\text{arm}}_t \in \mathbb{R}^7$, a scalar gripper position command $a^{\text{grip}}_t \in [0, 1]$, three body joint targets $\mathbf{q}^{\text{body}}_t = [q_{\text{torso}}, q_{\text{pan}}, q_{\text{tilt}}] \in \mathbb{R}^3$, and planar base linear and angular velocities $(v^{\text{base}}_t, \omega^{\text{base}}_t)$. The simulation client communicates with policy inference backends across local network sockets using remote procedure calls (RPC).
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{assets/figures/retail-vla-benchmark/collector_pipeline.pdf}
-    \caption{The automated demonstration collection pipeline. Privileged simulator state seeds intermediate waypoint anchors around the target product; fixed-base segments are solved via analytical screw interpolation, with an RRT-Connect planner catching kinematically complex trajectories. Segments requiring base displacement invoke an approach planner. Only rollouts that complete all stages and pass strict terminal predicates are committed to the training corpus; all failed attempts are discarded.}
-    \label{fig:anchor-sequence}
-\end{figure}
+\section{Compute allocation and inference concurrency}
+\label{sec:compute}
 
-\ref{fig:anchor-sequence} illustrates the collection architecture. For each phase, task-specific logic computes target waypoint anchors using privileged object poses. When the mobile base remains stationary, the sampler computes an analytical screw motion trajectory. The proposed path is checked for collisions against scene geometry and neighboring stock. If a collision is detected, the planner attempts a second screw motion; if that fails, execution falls back to RRT-Connect, which conducts a bidirectional randomized search through the robot's 7-DOF arm configuration space. When base repositioning is required, a dedicated non-holonomic approach planner guides the differential-drive base into an optimal reach envelope.
+Conducting a rigorous 2,520-rollout empirical evaluation under academic hardware limits requires disciplined resource engineering. Rather than attempting to train or fine-tune multi-billion-parameter models locally---which under constrained VRAM would force compromises on batch size, step budgets, and convergence---this study evaluates the authoritative, publicly released fine-tuned checkpoints provided by the benchmark authors. This design isolates physical execution from local training noise.
 
-The proposed trajectory is executed in ManiSkill3 with full rigid-body dynamics enabled. If any segment collides, if kinematic limits are breached, or if the terminal success predicate is not satisfied, the entire episode is discarded, the simulator resets, and the sampling loop restarts.
-
-This all-or-nothing filtering guarantees that saved demonstrations represent clean, collision-free executions. Crucially, it also introduces an inherent selection bias: the training corpus consists exclusively of nominal, planner-optimal paths. It contains zero failed grasps, zero recovery trajectories, and zero corrective realignment maneuvers. Consequently, imitation models trained on this corpus receive no supervision indicating how to return to a nominal trajectory when slight controller inaccuracies induce drift. In our local reproduction environment, the 2,976 demonstration metadata headers document this upstream training distribution, providing the foundational context for the released checkpoints evaluated herein.
-
-\section{Model checkpoints and inference protocol}
-\label{sec:training}
-
-Rather than conducting local training runs from scratch, this dissertation focuses on evaluating publicly released, fine-tuned checkpoints provided by the upstream RoboBenchMart project. This experimental design isolates policy execution from the confounding stochasticity of unverified local training runs.
-
-We evaluate two prominent, structurally divergent vision--language--action architectures:
-
+We evaluate two architecturally divergent vision--language--action foundation models:
 \begin{enumerate}[label=(\alph*),leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Octo} (93M parameters): A transformer-based diffusion policy combining visual tokenizers, language conditioning, and a continuous diffusion action head. We evaluate the released fine-tuned checkpoint (\texttt{emb-ai/RoboBenchMart\_octo}, git revision \texttt{f3c8de450fc08fb5737d32442a2b1e6ab2993244}, checkpoint \texttt{1000000}). The policy is served via \texttt{scripts/octo\_server.py}. In our runtime audit, we confirmed that the evaluation server runs with an observation history window of one frame ($H_{\text{obs}} = 1$), commanding continuous action chunks of 50 steps.
-  \item \textbf{$\boldsymbol{\pi_{0.5}}$}: A state-of-the-art vision--language--action model integrating a PaliGemma vision--language backbone with a specialized continuous flow-matching action expert. We evaluate the released fine-tuned weights (\texttt{emb-ai/RoboBenchMart\_pi05}, git revision \texttt{533ad107347c3568dc2456d1586b665889f0ed18}), deployed via the OpenPI server architecture under configuration \texttt{pi05\_eval\_rbm}. The model processes current camera inputs and language prompts to generate 50-step action chunks.
+  \item \textbf{Octo} (93M parameters): A transformer-based diffusion policy combining visual tokenizers, language conditioning, and a continuous diffusion action head. We evaluate checkpoint \texttt{1000000} from \texttt{emb-ai/RoboBenchMart\_octo} (revision \texttt{f3c8de450fc08fb5737d32442a2b1e6ab2993244}), served via \texttt{scripts/octo\_server.py}. The policy processes current observations with an observation history window of one frame ($H_{\text{obs}} = 1$), outputting action chunks of 50 steps.
+  \item \textbf{$\boldsymbol{\pi_{0.5}}$}: A large-scale vision--language--action model pairing a PaliGemma vision--language backbone with a specialized continuous flow-matching action expert. We evaluate released weights from \texttt{emb-ai/RoboBenchMart\_pi05} (revision \texttt{533ad107347c3568dc2456d1586b665889f0ed18}), deployed via the OpenPI server architecture under configuration \texttt{pi05\_eval\_rbm}. Action chunks are predicted over 50 steps.
 \end{enumerate}
 
-Both models execute in ManiSkill3 via client--server remote procedure calls. A crucial runtime distinction emerged during execution:
+Physical GPU memory constraints directly shaped how each model was served during execution:
 \begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Octo Execution}: Completed under batch identifier \texttt{octo\_parallel\_20260928\_021558}. The first 17 configurations were executed serially; the remaining 25 configurations were executed across four independent, parallel Octo server instances.
-  \item \textbf{$\boldsymbol{\pi_{0.5}}$ Execution}: Completed under batch identifier \texttt{pi05\_parallel\_20261002\_105333}. Four independent simulation client processes ran concurrently, all interfacing with a single shared OpenPI server process on port 8000.
+  \item \textbf{Octo Execution Architecture}: Because Octo is relatively lightweight (93M parameters), multiple model instances could reside in GPU memory simultaneously. Execution proceeded under batch identifier \texttt{octo\_parallel\_20260928\_021558}. To verify socket stability and baseline protocol adherence, the first 17 configurations were executed strictly serially. Once stability was confirmed, the remaining 25 configurations were parallelized across four independent Octo server instances running on separate ports, substantially reducing total evaluation wall-clock time.
+  \item \textbf{$\boldsymbol{\pi_{0.5}}$ Execution Architecture}: Due to the substantial VRAM footprint of the PaliGemma backbone and flow-matching network, launching four distinct OpenPI model instances would trigger GPU out-of-memory faults. Execution was therefore organized under batch identifier \texttt{pi05\_parallel\_20261002\_105333} using a shared-service architecture: a single OpenPI server process loaded on port 8000, while four independent ManiSkill3 simulation clients executed concurrently, dispatching asynchronous RPC inference requests to the shared server.
 \end{itemize}
 
-Because pseudorandom number consumption and asynchronous server queuing differ between these two execution frameworks, this evaluation should not be interpreted as a strictly paired, episode-by-episode comparison. Instead, it constitutes a standardized benchmark comparing the operational capabilities of both model pipelines across identical task configurations.
+This runtime distinction has important methodological ramifications. Because Octo utilized independent server instances while $\pi_{0.5}$ serialized requests through a shared queue, pseudorandom number consumption sequences and asynchronous response latencies differed between the two runs. Consequently, rollouts between Octo and $\pi_{0.5}$ cannot be treated as strictly paired, step-by-step counterfactuals. Instead, they represent standardized benchmark assessments of each model's independent operational capability across identical task configurations.
 
-Episode execution is governed by explicit simulation horizon budgets: Board and Floor tasks enforce a maximum of 750 simulator steps; Basket picking enforces 600 steps; Refrigerator tasks enforce 500 steps; and Showcase tasks enforce 1,000 steps. In all cases, policies execute an action chunk of 50 steps open-loop before a new visual observation is returned.
+\section{The 42-configuration evaluation matrix}
+\label{sec:matrix}
 
-\section{Evaluation scenarios and configuration matrix}
-\label{sec:scenarios}
-
-We evaluate both models across a comprehensive matrix of 42 atomic task configurations defined in \texttt{bash/eval\_model.sh}. The configurations are organized into four progressive distribution-shift tiers:
+To measure policy generalization systematically, we evaluate both models across a matrix of 42 atomic task configurations defined in \texttt{bash/eval\_model.sh}. The matrix organizes tasks into four progressive distribution-shift tiers:
 
 \begin{enumerate}[label=\textbf{\Roman*.},leftmargin=2.5em,itemsep=0.3em]
-  \item \textbf{Seeds} (12 configurations; \texttt{\_train} suffix): Re-instantiates the nominal store plans, fixture placements, and product arrangements used during demonstration collection. This tier tests in-domain imitation fidelity under nominal initial states.
-  \item \textbf{Pose} (12 configurations; \texttt{\_robo} suffix): Preserves the training store layouts, textures, and product identities, but perturbs the robot's initial chassis placement in front of the fixture ($\pm 25$~cm translation, $\pm 22.5^{\circ}$ yaw; seed 10000). This tests whether the policy can adjust to local base positioning offsets.
-  \item \textbf{Layout} (12 configurations; \texttt{\_uns} suffix; seed 42000): Introduces novel floor plans alongside unseen wall, floor, and ceiling texture sets. The target tasks and products remain familiar, but surrounding visual clutter and lighting perspectives change.
-  \item \textbf{Pairing} (6 configurations; \texttt{\_ood} suffix; seed 42000): Evaluates zero-shot task--item composition. The model is commanded to manipulate a target product that was present in training demonstrations for \emph{other} tasks, but was never demonstrated for the evaluated task (e.g., placing a Nivea cream box on a shelf board, or picking a Slam juice into a cart).
+  \item \textbf{Seeds} (12 configurations; \texttt{\_train} suffix): Re-executes the nominal store plans, fixture placements, and product arrangements used during demonstration collection with zero base offset. This tier evaluates in-domain imitation fidelity under nominal initial conditions.
+  \item \textbf{Pose} (12 configurations; \texttt{\_robo} suffix): Preserves training store layouts, textures, and product identities, but perturbs the robot's initial chassis placement in front of the fixture ($\pm 25$~cm translation, $\pm 22.5^{\circ}$ yaw; seed 10000). This isolates the policy's capacity to compensate for local base positioning errors.
+  \item \textbf{Layout} (12 configurations; \texttt{\_uns} suffix; seed 42000): Introduces novel procedural store floor plans alongside unseen wall, floor, and ceiling textures. Target tasks and products remain familiar, but surrounding visual clutter and perspective geometries shift.
+  \item \textbf{Pairing} (6 configurations; \texttt{\_ood} suffix; seed 42000): Evaluates zero-shot task--item composition. The model is commanded to manipulate a target product that was present in training demonstrations for other tasks, but was never demonstrated for the evaluated task (e.g., placing a Nivea cream box on a shelf board, or picking a Slam juice into a cart).
 \end{enumerate}
 
-Two important methodological caveats govern this matrix. First, door manipulation tasks (Open and Close) have no meaningful Pairing condition because their instructions address fixed fixture handles rather than product entities; these cells are marked not applicable (--). Second, our protocol audit revealed that in door tasks, the nominal Layout condition does not instantiate disjoint store plans; it reuses the training floor layouts, varying only textures and starting poses. Consequently, door Layout tests texture invariance rather than geometric transfer.
+Two vital methodological caveats govern this matrix. First, door manipulation tasks (Open and Close) have no meaningful Pairing condition because their instructions address fixed fixture handles rather than product entities; these cells are marked not applicable (--). Second, our protocol audit revealed that in door tasks, the nominal Layout condition does not instantiate disjoint store plans; it reuses the training floor layouts, varying only textures and starting poses. Consequently, door Layout tests texture invariance rather than geometric floor-plan transfer.
 
-Each configuration is evaluated over 30 independent Monte Carlo rollouts. Performance is aggregated across canonical task families:
+Each configuration is evaluated over 30 independent Monte Carlo rollouts. Why 30 rollouts? In robot evaluation, single-trial runs yield noisy, anecdotal metrics, while 100-rollout sweeps across 42 configurations (8,400 episodes across two models) would exceed available GPU compute budgets by a factor of three. Evaluating 30 rollouts per configuration strikes the optimal empirical balance: it amasses 1,260 rollouts per model (2,520 episodes in aggregate), providing sufficient statistical resolution to detect meaningful performance trends while remaining computationally tractable on local infrastructure.
+
+Performance is aggregated across five canonical atomic task families:
 \begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
   \item \textbf{Basket} (Pick to Basket; 3 items: Fanta, Nivea, Honey Stars): Pools 3 configurations under Seeds, Pose, and Layout (90 episodes each), and 2 configurations under Pairing (60 episodes; Nestl{\'e}, Slam).
   \item \textbf{Board} (Board to Board; 3 items: Duff, Nestl{\'e}, Vanish): Pools 3 configurations under Seeds, Pose, and Layout (90 episodes each), and 2 configurations under Pairing (60 episodes; Nivea, Fanta).
@@ -98,42 +85,45 @@ Each configuration is evaluated over 30 independent Monte Carlo rollouts. Perfor
   \item \textbf{Close} (Fridge and Showcase Close): Pools 2 configurations under Seeds, Pose, and Layout (60 episodes each).
 \end{itemize}
 
-This yields 360 episodes under Seeds, 360 under Pose, 360 under Layout, and 180 under Pairing, totaling exactly 1,260 evaluated episodes per model (2,520 episodes in aggregate).
+This yields 360 episodes under Seeds, 360 under Pose, 360 under Layout, and 180 under Pairing per model, totaling exactly 1,260 evaluated episodes per model (2,520 rollouts overall).
 
-\section{Success and side-effect checks}
+Episode horizons enforce explicit simulation step budgets: Board and Floor tasks allow a maximum of 750 simulator steps; Basket picking allows 600 steps; Refrigerator tasks allow 500 steps; and Showcase tasks allow 1,000 steps.
 
-Evaluating retail manipulation requires monitoring whole-scene integrity. Knocking over adjacent stock to reach a target item constitutes an operational failure.
+\section{Control constraints and task success predicates}
 
-The evaluation engine enforces the strict composite predicate formulated in Equation~\ref{eq:predicate-success}:
+Evaluating retail manipulation requires strict monitoring of whole-scene integrity. Knocking over adjacent stock while reaching for a target item constitutes an operational failure.
+
+The evaluation engine enforces the composite predicate:
 \begin{equation}
   y = \mathbb{I}[o^* \in G]\;\mathbb{I}[\lVert\mathbf{v}_{\text{robot}}\rVert_2 \leq v_{\text{tol}}]\;\prod_{o \in \mathcal{N}(o^*)} \mathbb{I}[\lVert\Delta \mathbf{p}_o\rVert_{\infty} \le \epsilon_p \;\land\; \lVert\Delta \mathbf{q}_o\rVert_{\infty} \le \epsilon_q].
-  \label{eq:strict-success}
+  \label{eq:strict-success-method}
 \end{equation}
-The target item $o^*$ must settle within destination volume $G$, the robot platform must settle below velocity threshold $v_{\text{tol}} = 0.2$~m/s, and collateral objects $o \in \mathcal{N}(o^*)$ must not exceed translational ($\epsilon_p = 0.1$~m) or rotational ($\epsilon_q = 0.1$) displacement tolerances.
+The target item $o^*$ must settle within the designated target volume $G$, the robot platform must come to rest ($\lVert\mathbf{v}_{\text{robot}}\rVert_2 \leq 0.2$~m/s), and surrounding collateral objects $\mathcal{N}(o^*)$ must remain undisturbed within translational ($\epsilon_p = 0.1$~m) and rotational ($\epsilon_q = 0.1$) tolerances.
 
-Our audit surfaced the exact geometric tolerances implemented in code:
+Our inspection confirmed the exact geometric parameters implemented in code:
 \begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Basket Destination}: Evaluated as an axis-aligned bounding cube of $0.4\times 0.4\times 0.4$~meters anchored to the robot's base coordinates (expanded to $0.5$~m for Honey Stars). Collateral checking monitors only items residing on the target fixture shelf.
+  \item \textbf{Basket Destination}: Evaluated as an axis-aligned bounding cube of $0.4\times 0.4\times 0.4$~meters anchored to the robot's base coordinates (expanded to $0.5$~m for large cereal packaging such as Honey Stars). Collateral checking monitors only items residing on the target fixture shelf.
   \item \textbf{Board Transfer Destination}: Enforces a horizontal window of $\pm 0.1$~m centered $0.397$~meters vertically above the source shelf, with scene-wide collateral monitoring.
   \item \textbf{Door Articulation}: Showcase doors must reach $1.57 \pm 0.2$~rad (open) or $0 \pm 0.2$~rad (close); refrigerator covers require $0.624 \pm 0.1$~rad.
 \end{itemize}
 
-Success rates are reported as exact counts alongside percentages. Absolute percentage-point deltas quantify degradation between conditions:
-\begin{equation}
-  \Delta S_{m,t} = S_{m,t,\mathrm{Pose}} - S_{m,t,\mathrm{Layout}}.
-  \label{eq:degradation}
-\end{equation}
+Beyond spatial tolerances, our code audit revealed two decisive physical constraints governing low-level control:
+\begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
+  \item \textbf{50-Step Open-Loop Action Chunking}: Both models predict action chunks of 50 steps. The simulator executes all 50 steps open-loop before returning a fresh visual observation, blinding the policy to transient contact deflections during critical pre-grasp phases.
+  \item \textbf{Rigid Spine Clamping ($q_{\text{torso}} = 0$)}: In the evaluation client, low-level logic explicitly overwrites the torso-lift and head-pan command dimensions with zero at every simulation step. Because joint setpoints are interpreted as absolute coordinates, this forces the prismatic torso to remain permanently locked at its mechanical minimum ($q_{\text{torso}} = 0$). Across every rollout, the robot operates with an entirely immobilized vertical spine.
+\end{itemize}
 
-\section{Outcome logging and artifact traceability}
+\section{Artifact logging, data boundaries, and traceability}
+\label{sec:traceability-method}
 
-To ensure complete experimental auditability without relying on opaque summaries, all 2,520 rollouts were logged with verified artifact manifests.
+To ensure complete experimental auditability without relying on opaque aggregate numbers, all 2,520 rollouts were logged with verified artifact manifests.
 
-Each of the 42 configurations generates an execution log containing an explicit terminal summary (\texttt{Results: [list of successful episodes]}). Each rollout produces a full MP4 video recording, indexed by configuration and episode number. In the project repository, \texttt{episode\_outcomes.csv} maps every rollout to its terminal binary outcome, while \texttt{artifact\_manifest.csv} and \texttt{log\_manifest.csv} document the SHA-256 checksums, byte sizes, and paths of all 2,688 generated output files (1,344 files per model, including 1,260 MP4 videos stored via Git LFS).
+Each of the 42 configurations generates an execution log containing an explicit terminal summary (\texttt{Results: [list of successful episodes]}). Every rollout produces a full MP4 video recording, indexed by configuration and episode number. In the project repository, \texttt{episode\_outcomes.csv} maps every rollout to its terminal binary outcome, while \texttt{artifact\_manifest.csv} and \texttt{log\_manifest.csv} document the SHA-256 checksums, byte sizes, and paths of all 2,688 generated output files (1,344 files per model, including 1,260 MP4 videos stored via Git LFS).
 
 Our inspection identified a crucial data boundary: while video recordings and text logs are complete, container HDF5 files are exactly 800 bytes each, and JSON \texttt{episodes} arrays are unpopulated. Consequently, the archive does not preserve continuous per-step joint trajectories. Episode success indices are derived directly from verified runtime environment logs.
 
 \section{Validity considerations}
-\label{sec:validity}
+\label{sec:validity-method}
 
 Evaluating robotic policies in simulation involves critical validity boundaries:
 \begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
@@ -142,9 +132,6 @@ Evaluating robotic policies in simulation involves critical validity boundaries:
   \item \textbf{External Validity}: Rigid-body simulation in ManiSkill3 does not capture sensor noise, tactile compliance, packaging deformation, or motor backlash inherent to physical hardware.
 \end{itemize}
 
-\section{Protocol traceability and quality control}
-\label{sec:traceability}
-
-A foundational objective of this dissertation is establishing protocol hygiene. By verifying execution logs against SHA-256 manifests, linking binary outcomes to archived Git LFS videos, and documenting the precise client-side control clamps, this framework ensures that all reported findings remain fully auditable and reproducible across the research community.
+By documenting these constraints candidly, this methodology establishes a grounded, transparent framework for analyzing the empirical findings in Chapter~\ref{chap:results}.
 
 \endgroup
