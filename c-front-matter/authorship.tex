@@ -1,22 +1,22 @@
 \section*{Authorship Attribution Statement}
 
-This dissertation reports research carried out by the candidate, reproducing, adapting and empirically evaluating the RoboBenchMart benchmark in ManiSkill3. The experimental design, single-GPU adaptation pipelines, failure-mode analysis, protocol audit, and dissertation writing are the candidate's own work. Upstream benchmark components, simulation environments, third-party models, software libraries and datasets are acknowledged through the relevant citations and licence terms.
+This dissertation reports an independent re-evaluation, carried out by the candidate, of two policy checkpoints released with the RoboBenchMart benchmark. The RoboBenchMart benchmark, including its store generator, asset library, robot configuration, tasks, success predicates, demonstration data, evaluation protocol and failure taxonomy, was created by its authors at emb-ai and is described in arXiv:2511.10276. The Octo and $\pi_{0.5}$ checkpoints evaluated here were fine-tuned and published by the same authors; the candidate did not train or fine-tune any model. ManiSkill3, OpenPI, Octo and the other software used are third-party work, acknowledged through citations and licence terms.
 
 \vspace{0.5\baselineskip}
 
 The candidate's contributions consist of the following work:
 
 \begin{enumerate}[leftmargin=*,itemsep=0.15\baselineskip]
-\item Reproduction, configuration, and verification of the RoboBenchMart simulation environment in ManiSkill3, including procedural scene generation and asset preparation.
-\item Design and implementation of an independent multi-tier evaluation framework separating in-domain pose perturbations, layout shifts, and unseen task--item pairings.
-\item Adaptation and experimental evaluation of four vision-language-action policy families (Octo, SmolVLA, $\pi_0$, $\pi_{0.5}$) under a single-GPU consumer hardware budget.
-\item Collection, validation, and curation of the demonstration dataset and unified policy observation--action interfaces.
-\item In-depth failure analysis across 2,906 unsuccessful episodes using an eleven-stage taxonomy, alongside an experimental protocol audit reproducing and documenting runtime discrepancies.
+\item Setting up the public RoboBenchMart code, scenes and checkpoints, and repairing the evaluation path: restoring a missing import in the floor environment, adapting the evaluation client to gymnasium wrappers, adding connection timeouts, and giving each Octo server connection its own policy instance.
+\item Running the 42 atomic evaluation configurations for both checkpoints (2,520 episodes), including serial resumption after failures and parallel execution across several servers and clients.
+\item Archiving the results: per-configuration and per-episode tables, logs, videos and SHA-256 manifests.
+\item A trial run of the upstream scene generator and an overview-camera recording tool.
+\item Analysis of the results, examination of the evaluation code and version history, and the writing of this dissertation.
 \end{enumerate}
 
 \vspace{0.5\baselineskip}
 
-All work claimed as a contribution in this dissertation was carried out by the candidate. Contributions originating from cited third parties and the upstream RoboBenchMart project are acknowledged and not claimed as the candidate's own work.
+All work claimed as a contribution in this dissertation was carried out by the candidate. Work originating from the RoboBenchMart authors and other cited third parties is acknowledged and not claimed as the candidate's own.
 
 \vspace{0.5\baselineskip}
 

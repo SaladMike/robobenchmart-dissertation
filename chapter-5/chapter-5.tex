@@ -5,247 +5,200 @@
 \setlength{\parindent}{2em}
 \setlength{\parskip}{0.55\baselineskip}
 
-\section{Reading the results}
+This chapter reports what happened when the two released checkpoints were run through the 42 atomic configurations described in Chapter~\ref{chap:methodology}. I begin with the plainest question, whether the protocol could be executed at all, because every later number depends on it. The success counts follow, first for the three pick-and-place families and then for the door tasks, where nearly all of the successes are found. The second half of the chapter is about interpretation: how far these counts sit from the upstream report, which explanations remain open, and which properties of the protocol limit what can be concluded.
 
-The empirical findings of this dissertation deliver a sharp, sobering message. Inspect the summary leaderboard in \ref{tab:main-results}, and the initial impression is stark: an unbroken expanse of near-zero numbers, hovering stubbornly between zero and four percent. A naive reaction would dismiss these figures as evidence of a broken benchmark or a failed experiment. That reaction is mistaken. These numbers reflect an unvarnished, mathematically rigorous accounting of what happens when state-of-the-art vision--language--action architectures are adapted and evaluated under realistic consumer hardware constraints against an unforgiving physical simulation.
+\section{Execution and the evidence that remains}
+\label{sec:execution}
 
-To interpret this evidence without succumbing to either undue pessimism or unwarranted hype, the data must be separated into three distinct evidentiary domains:
-\begin{enumerate}[label=(\roman*),leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{System and Computational Usability}: Verifies whether the procedurally generated stores, simplified asset geometries, and simulation hooks function reliably at runtime.
-  \item \textbf{Demonstration and Adaptation Feasibility}: Confirms whether algorithmic motion planning can successfully supervise multi-modal policies, and whether disparate architectures can ingest a shared observation--action schema.
-  \item \textbf{Empirical Policy Competence}: Evaluates the physical performance of the trained checkpoints across our four-tier experimental ladder under the protocol actually executed.
-\end{enumerate}
+All 42 configurations were completed for both models, 30 episodes each. That gives 1,260 episodes per checkpoint and 2,520 in total. The route to that point was not clean, and I record it here because the history affects how the episodes can be compared.
 
-Only the third domain reflects policy capability, and even there, architectural capacity remains inextricably entangled with training step budgets, batch size constraints, parameter-efficient adapters, and low-level control choices. Disentangling these mechanisms is the central objective of this chapter.
+The Octo run started as a single serial batch. It crashed at configuration~8, the first floor task, with \texttt{NameError: get\_actor\_obb}: an upstream commit had removed the import from \texttt{dsynth/envs/pick\_from\_floor.py} while the function was still in use, so the floor environments could not be constructed at all. After I restored the import, the serial batch was resumed from configuration~8. The resumed process stopped after nine further configurations for a reason I was unable to establish; the log ends and no exit file was written. A second resumption completed one more configuration and was then stopped on purpose so that the remaining 25 configurations could run in parallel on four independent Octo servers (ports 8000--8003). Only configurations that finished all 30 episodes enter the results; partial directories left by the interrupted batches were discarded. The $\pi_{0.5}$ run was simpler. Four client processes shared one OpenPI policy server, and each of the 42 configurations wrote its own log with exactly one \texttt{Results:} line.
 
-\ref{tab:main-results} reports the primary policy evaluation across four models, three experimental scenarios, and seven manipulation tasks. Every task--item--fixture cell pools 100 independent Monte Carlo rollouts. For Pose and Layout, Basket and Board pool three distinct product triplets (300 trials per cell), whereas Floor, Open, and Close pool two triplets (200 trials). In the Pairing condition, each applicable pick-and-place task pools two held-out product triplets (200 trials). A dash (--) designates conditions that are structurally undefined: door tasks operate on fixed structural handles rather than product entities, rendering product-swapping Pairing meaningless. The two composite task columns record zero across all evaluations. A historical $\pi_0$ Pairing cell on floor recovery cannot be reconstructed from archived product records and is preserved as not recoverable (NR) rather than converted into an unsubstantiated integer.
+Two further repairs were needed before the client and servers would work together. The evaluation client read the language instruction from the wrapped environment, which fails once gymnasium wrappers are applied; I changed it to read \texttt{env.unwrapped.language\_instructions}. The Octo server originally shared one policy object, including its observation-history buffer, across every connection; with parallel clients this would have mixed observations from different episodes, so I changed it to construct a separate policy per connection. Neither change touches the success predicates, the scenes or the seeds.
 
+What survives from the two runs is narrower than a full trajectory archive, and the gap is easy to overlook. Each configuration directory holds one MP4 per episode, an HDF5 file and a JSON file. The JSON files list no episodes and every HDF5 file is 800 bytes. The reason is mundane: the evaluation script does not pass \texttt{--save-traj}, and the client calls \texttt{flush\_trajectory()} only when that flag is present. Per-episode outcomes therefore come from the logs, where each \texttt{Results:} line lists the seeds of the successful episodes. I mapped these onto the 2,520 video files and recorded SHA-256 hashes for every artefact. The videos are stored in Git LFS and nobody has watched them systematically, me included. Nothing in this chapter rests on what a video shows.
+
+Against RQ1, then, the answer is yes, with qualifications. The upstream release can be run end to end from public code, scenes and checkpoints, but only after one import fix in an environment file and two interface fixes in the serving path. The evidence that results is a per-episode success flag tied to a seed, a video and a hash. It is not a per-step record of states and actions.
+
+\section{Success counts by task and condition}
+\label{sec:main-results}
+
+\ref{tab:main-results} is the main result. Each cell pools the configurations of one task family under one condition, so Basket and Board cells contain three configurations (90 episodes), Floor, Open and Close contain two (60 episodes), and every Pairing cell contains two (60 episodes). I deliberately left out a total column. The five families have different horizons, success predicates and fixtures, and a single average across them would mostly measure the mix of families.
+
+{\renewcommand{\arraystretch}{1.15}
 \begin{table}[H]
 \centering
-\scriptsize
-\setlength{\tabcolsep}{2.2pt}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{llrrrrrrrr}
+\small
+\begin{tabular}{llccccc}
 \toprule
-Model & Scenario & Basket & Floor & Board & Open & Close & Pick 3 & Fridge seq. \\
+Model & Condition & Basket & Floor & Board & Open & Close \\
 \midrule
-\multirow{3}{*}{Octo}
- & Pose & 1 & 1 & 2 & 3 & 4 & 0 & 0 \\
- & Layout & 2 & 1 & 1 & 2 & 7 & 0 & 0 \\
- & Pairing & 0 & 0 & 0 & -- & -- & 0 & 0 \\
+\multirow{4}{*}{Octo}
+ & Seeds   & 0/90 & 0/60 & 0/90 & 0/60 & 1/60 (1.7) \\
+ & Pose    & 0/90 & 0/60 & 0/90 & 0/60 & 0/60 \\
+ & Layout  & 0/90 & 0/60 & 0/90 & 0/60 & 3/60 (5.0) \\
+ & Pairing & 0/60 & 0/60 & 0/60 & --   & -- \\
 \midrule
-\multirow{3}{*}{SmolVLA}
- & Pose & 0 & 0 & 0 & 1 & 2 & 0 & 0 \\
- & Layout & 0 & 0 & 0 & 1 & 2 & 0 & 0 \\
- & Pairing & 0 & 0 & 0 & -- & -- & 0 & 0 \\
-\midrule
-\multirow{3}{*}{$\pi_0$}
- & Pose & 1 & 1 & 1 & 2 & 2 & 0 & 0 \\
- & Layout & 1 & 1 & 1 & 2 & 2 & 0 & 0 \\
- & Pairing & 0 & NR$^{\dagger}$ & 0 & -- & -- & 0 & 0 \\
-\midrule
-\multirow{3}{*}{$\pi_{0.5}$}
- & Pose & 1 & 1 & 1 & 2 & 2 & 0 & 0 \\
- & Layout & 1 & 1 & 1 & 1 & 2 & 0 & 0 \\
- & Pairing & 1 & 1 & 3 & -- & -- & 0 & 0 \\
+\multirow{4}{*}{$\pi_{0.5}$}
+ & Seeds   & 0/90 & 0/60 & 0/90 & 0/60       & 15/60 (25.0) \\
+ & Pose    & 0/90 & 0/60 & 0/90 & 1/60 (1.7) & 10/60 (16.7) \\
+ & Layout  & 0/90 & 0/60 & 0/90 & 1/60 (1.7) & 12/60 (20.0) \\
+ & Pairing & 0/60 & 0/60 & 0/60 & --         & -- \\
 \bottomrule
-\end{tabular}}
-\caption{Task-level success rates (\%). Every task--item--fixture triplet contains 100 independent trials. For Pose and Layout, Basket and Board pool three triplets (300 trials), while Floor, Open, and Close pool two (200 trials). Pairing pools two held-out product triplets (200 trials) for applicable pick-and-place tasks. Reported values are rounded to the nearest integer using round-half-up, while unrounded counts govern all comparative analyses. Door Layout reuses training store layouts while varying textures and starting poses. Composite tasks evaluate full sequential completion. $^{\dagger}$The archived task-level record reports a rounded 1\%, but unrounded numerators were unpreserved; it is marked NR and excluded from numerical aggregations.}
+\end{tabular}
+\caption{Successes over episodes for each task family and condition; percentages in parentheses are given for non-zero cells. A dash means the condition is not defined for door tasks, not that the score is zero. Wilson 95\% intervals for selected cells: 0/90, $[0, 4.1]$\%; 0/60, $[0, 6.0]$\%; $\pi_{0.5}$ Close 15/60, $[15.8, 37.2]$\%; 10/60, $[9.3, 28.0]$\%; 12/60, $[11.8, 31.8]$\%; 1/60, $[0.3, 8.9]$\%; Octo Close 3/60, $[1.7, 13.7]$\%. Source: \texttt{results/octo-2026-09-28/} and \texttt{results/pi05-2026-10-02/} in the project repository; per-configuration counts are in \ref{tab:per-config}.}
 \label{tab:main-results}
-\end{table}
+\end{table}}
 
-We deliberately refrain from computing a single grand-average score across rows or columns. Averaging success on refrigerator door closing with cereal box retrieval produces an uninterpretable metric: the two tasks operate under entirely different kinematics, contact profiles, and predicate tolerances. Meaning emerges from reading along specific axes of variation, not from flattening them into an index.
+Two features of the table stand out before any statistics. The left three columns are empty. And the right-hand column is the only place where either model succeeds with any regularity: 37 of the 39 $\pi_{0.5}$ successes and all four Octo successes are door-closing episodes.
 
-\section{RQ1: scene generation and computational usability}
+\section{Pick-and-place: 1,800 episodes without a success}
+\label{sec:pick-zero}
 
-Research Question 1 asked whether procedural generation could synthesize structurally coherent, navigable store layouts without sacrificing simulation throughput. On this criterion, the framework succeeds unambiguously. The procedural pipeline generates distinct floor layouts across random seeds rather than repeatedly shifting furniture within a static box. Each layout serializes to a clean JSON descriptor, instantiates in ManiSkill3, and preserves continuous 2.0-meter aisle corridors. Fixtures coalesce into natural, longitudinal multi-unit runs rather than scattering chaotically across the floor (\ref{fig:store-generation}).
+Neither checkpoint completed a single Basket, Floor or Board episode. That is 900 episodes per model across Seeds, Pose, Layout and Pairing, and 1,800 in all.
 
-However, the mechanism driving this visual order is far more discrete than continuous tensor mathematics might suggest. The tensor field functions as a directional filter along Cartesian sweeps. Because $d = 12$, its effective sensing radius collapses to roughly thirty centimeters, meaning candidate fixtures respond almost exclusively to the single nearest boundary wall. The shelves snap strictly to coordinate axes. The resulting regularity is genuine and functional, but it represents an axis-aligned spatial gate rather than a fluid, multi-angle orientation field.
+A zero from 30 or 60 trials is a weaker statement than it looks, so it helps to say how weak. With the Wilson interval, 0/90 is compatible with a true rate of up to about 4.1\%, 0/60 with up to 6.0\%, and a single 0/30 configuration with up to 11.4\%. Pooled over a model's 900 pick-and-place episodes, the upper bound falls to roughly 0.4\%, although pooling across three task families is only reasonable as a statement about the whole block, not about any one family. What the data rule out is a moderate success rate. They cannot distinguish a checkpoint that never succeeds from one that succeeds a few times in a hundred.
 
-Shelf population achieves dense visual realism while holding occupancy strictly constant. The designed mechanisms for stock depletion and vertical stacking were excluded from the runtime pipeline; every shelf across all training and evaluation runs is fully stocked. This design choice controls for visual clutter, ensuring that performance variations cannot be blamed on unpredictable gaps in product rows.
+The logs add one piece of information. For every pick-and-place configuration of both models, the mean and maximum episode lengths recorded by the progress bar equal the step cap: 750 for Board and Floor, 600 for Basket. No episode ended early. Beyond that I can say very little about how these episodes failed. There is no per-step trajectory to inspect, no automatic stage-level signal in the logs, and no annotation of the videos. Whether the robot never reached the target, grasped it and dropped it, or disturbed neighbouring stock is unknown, and I have not tried to guess.
+
+\section{Door tasks}
+\label{sec:doors}
+
+The door tasks are where the two checkpoints become distinguishable. \ref{tab:door-configs} lists the eight door configurations per condition, and \ref{fig:door-results} shows the same counts with their intervals.
+
+{\renewcommand{\arraystretch}{1.15}
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lcccccc}
+\toprule
+& \multicolumn{2}{c}{Seeds} & \multicolumn{2}{c}{Pose} & \multicolumn{2}{c}{Layout} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Configuration & Octo & $\pi_{0.5}$ & Octo & $\pi_{0.5}$ & Octo & $\pi_{0.5}$ \\
+\midrule
+\texttt{open\_fridge}     & 0 & 0 & 0 & 0 & 0 & 1 \\
+\texttt{open\_showcase}   & 0 & 0 & 0 & 1 & 0 & 0 \\
+\texttt{close\_fridge}    & 0 & 8 & 0 & 7 & 0 & 6 \\
+\texttt{close\_showcase}  & 1 & 7 & 0 & 3 & 3 & 6 \\
+\bottomrule
+\end{tabular}
+\caption{Door-task successes per configuration, each out of 30 episodes.}
+\label{tab:door-configs}
+\end{table}}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.68\textwidth]{assets/figures/retail-vla-benchmark/mesh_timing.pdf}
-    \caption{Stepping performance across increasing shelving units for 50 simulation steps on an NVIDIA RTX 4090 (log--log scale). The original-mesh baseline stalls past four units due to polygon memory bottlenecks. In contrast, the simplified-mesh pipeline maintains stepping durations between 0.23 and 0.42~seconds from one unit up to 118 fully stocked units.}
-    \label{fig:mesh-performance}
+    \includegraphics[width=\textwidth]{assets/figures/rewrite/door_results.pdf}
+    \caption{Door-task success per configuration with Wilson 95\% intervals ($n=30$ per point). Octo in grey squares, $\pi_{0.5}$ in blue circles. The intervals for single configurations are wide; a count of 7/30 and one of 3/30 overlap.}
+    \label{fig:door-results}
 \end{figure}
 
-The decisive engineering test for RQ1 is plotted in \ref{fig:mesh-performance}. When populating shelves with raw, unoptimized product meshes, simulation stepping times surge from 0.21~seconds for a single unit to 1.24~seconds for four units. At five units, memory exhaustion renders simulation completely impractical. In sharp contrast, our Pareto-optimized simplified meshes maintain stepping durations between 0.23 and 0.42~seconds across the entire scaling curve, effortlessly stepping a massive 118-unit supermarket scene on a single GPU.
+For $\pi_{0.5}$ the difference between closing and opening is large. Pooled over Seeds, Pose and Layout, it closed a door in 37 of 180 episodes (20.6\%, Wilson $[15.3, 27.0]$\%) and opened one in 2 of 180 (1.1\%, $[0.3, 4.0]$\%). A two-sided Fisher exact test gives $p \approx 4\times10^{-10}$. With 30 episodes per configuration this is the one contrast in the data that I would call clear.
 
-Crucially, \ref{fig:mesh-performance} reveals a subtle crossing point: below two units, raw meshes step marginally faster than simplified meshes due to the minor overhead of processing remeshed vertex buffers. But as scene complexity scales, raw meshes choke the rendering pipeline while simplified proxies exhibit near-flat scaling. The practical conclusion is clear: automated mesh decimation is the foundational technological enabler that makes whole-store simulation possible on consumer hardware.
+Why closing should be so much easier I cannot say from these records. It is tempting to argue that a closing door can be pushed with any part of the arm while opening needs a grasp on a handle, and that may well be true, but nothing I recorded distinguishes between that and other explanations. The successful closing episodes are also shorter on average. For $\pi_{0.5}$ the mean recorded length of \texttt{close\_fridge} configurations was 437--452 steps against a cap of 500, and of \texttt{close\_showcase} configurations 827--927 against a cap of 1,000. That fits episodes ending at the moment the predicate is met, and says nothing further about how the door was moved.
 
-Geometric accessibility holds by construction, as intersecting candidates are culled during sweeping. Visual plausibility was confirmed via direct visual inspection of rendered perspectives. However, navigability was verified only in the sense of geometric clearance: because all policy episodes initialize 1.4~meters in front of the target fixture, store-scale path planning is never exercised by the learned agents.
+Comparing fridge with showcase is less useful than it first appears. The two fixtures have different success predicates: the fridge lid must come within 0.1~rad of its target angle, and a showcase door within 0.2~rad. They also start from different angles and the robot is placed differently in front of them. $\pi_{0.5}$ closed the fridge in 21/90 episodes and a showcase door in 16/90 (Fisher $p \approx 0.46$). Given the different predicates, I do not read this as a ranking of the two fixtures.
 
-\section{RQ2: demonstration generation and adaptation}
+\section{Conditions}
+\label{sec:conditions}
 
-Research Question 2 evaluated whether an automated motion planner could harvest large-scale demonstrations and whether a single multi-modal interface could support heterogeneous VLA models. 
+The four conditions were designed as a ladder of increasing distribution shift. In this run, the ladder can only be read on one rung of one task family. For $\pi_{0.5}$ on Close the counts go 15/60, 10/60 and 12/60 across Seeds, Pose and Layout. The pairwise Fisher tests give $p \approx 0.37$ (Seeds against Pose), $0.81$ (Pose against Layout) and $0.66$ (Seeds against Layout). None of these differences is distinguishable from sampling variation at this sample size. A real degradation of five or ten points could easily be hidden in them.
 
-The demonstration harvester successfully collected 248 verified trajectories across twelve task--item--fixture configurations, amassing 2,976 successful demonstrations and 1,401,169 transitions in approximately ten wall-clock hours on a single RTX 4090. Staged waypoint anchoring coupled with screw interpolation and RRT-Connect fallback delivered a rich training corpus without a single minute of manual teleoperation. A single standardized schema---synchronizing three camera streams, proprioception, and a 13-dimensional action vector---fed four structurally divergent model families without architectural friction. As a data factory, the pipeline fulfilled its mandate.
+Even if the differences were larger, two properties of the protocol would limit what they mean. For the door tasks, the Layout configurations load the same scene directories as Seeds and Pose; only the episode seeds (from 42,000) and the initial-pose seeds (from 10,000) change. Door Layout is therefore not a test of transfer to new store geometry. And Pairing, which asks for a familiar skill on a product not demonstrated for that task, was only defined for pick-and-place. Since pick-and-place produced no successes under any condition, Pairing had nothing to degrade from. The condition ran, but it tested nothing in this run.
 
-Yet the adaptation half of RQ2 reveals deep, challenging complexities. The most revealing diagnostic comparison is found in Appendix~\ref{app:training-results}, contrasting the \textbf{Seeds} condition (exact reproduction of training episodes) with the \textbf{Pose} condition (in-domain initial base perturbations). Under Seeds, the robot faces the exact store, shelf, and product placement it was trained on. Under Pose, all visual geometry remains identical, but the robot's initial base position shifts slightly ($\pm 25$~cm translation, $\pm 22.5^{\circ}$ yaw).
+The Seeds-against-Pose comparison can be made a little sharper. Both conditions use the same 30 episode seeds per configuration; Pose differs only by drawing the robot's starting pose from a separate seed stream. For $\pi_{0.5}$, four \texttt{close\_fridge} seeds and one \texttt{close\_showcase} seed succeeded under both conditions. The overlap is small, which is consistent with the starting pose mattering, but with counts this low I would not build an argument on it.
 
-Even under this minimal spatial perturbation, performance degrades:
-\begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item Octo's board-transfer success rates across three target items drop from 5\%, 3\%, and 3\% under Seeds to 3\%, 1\%, and 1\% under Pose.
-  \item $\pi_{0.5}$'s pick-to-basket success rates drop from 2\%, 2\%, and 2\% under Seeds to 1\%, 1\%, and 1\% under Pose.
-\end{itemize}
-These drops, while numerically small due to the near-zero baseline, demonstrate that learned policies struggle with simple spatial translations. The policies have largely memorized an open-loop motor trajectory tied to a fixed starting coordinate rather than acquiring closed-loop visual feedback control.
+\section{The two checkpoints}
+\label{sec:models}
 
-SmolVLA exhibits an even more striking behavioral anomaly. Across every pick-and-place task, under every evaluation scenario (including the training Seeds), SmolVLA scores exactly 0\%. Yet on door opening and closing, it achieves success rates between 1\% and 4\%. A model that never once succeeds at grasping an object it observed in 248 demonstrations, but occasionally operates an articulated door, is not experiencing uniform cognitive failure. Door manipulation provides large structural handles and continuous physical guidance during contact, whereas pick-and-place requires sub-centimeter end-effector precision into visual clutter.
+$\pi_{0.5}$ recorded 39 successes and Octo 4. Because both models were run on the same episode seeds in all 42 configurations (the seeds in the logs and the video file names are identical), the door outcomes can be compared seed by seed. Of the episodes in which at least one model succeeded, both succeeded on 3, only $\pi_{0.5}$ on 36, and only Octo on 1 (\texttt{close\_showcase}, Seeds, seed 104). Treated as matched pairs, a two-sided sign test on 36 against 1 gives $p \approx 5.5\times10^{-10}$.
 
-Thus, RQ2 yields a divided verdict. On automated demonstration generation, the answer is an unqualified affirmative: 2,976 high-fidelity trajectories were generated and formatted through a unified schema. On policy adaptation, the verdict is deeply constrained. Out of 144 triplet cells in the Seeds/Pose/Layout matrix, 111 cells record at least one successful completion, proving that the models are actively learning. But none achieved dependable autonomy. Because step budgets were capped at 30,000 to 100,000 steps on a single GPU without convergence verification, this study cannot determine whether the demonstration corpus is fundamentally sufficient or whether the models simply suffered from training starvation.
+I report that test as a description, not a formal paired analysis. The pairing is by seed only. The two runs were executed in different ways (Octo partly serial and partly on four independent servers, $\pi_{0.5}$ on four clients sharing one server), on different days, and nothing guarantees that the simulator reached identical states for the same seed under both. The unpaired comparison of Close counts, 37/180 against 4/180, leads to the same conclusion (Fisher $p \approx 2\times10^{-8}$), so the result does not depend on the pairing assumption.
 
-A primary cause lies in the nature of algorithmic demonstrations: the collector retains only successes. The training data presents pristine nominal trajectories, completely omitting recovery actions, missed grasps, or corrective alignment maneuvers. When an adapted policy inevitably drifts from the nominal path, it encounters states never seen in training, triggering rapid, catastrophic failure.
+What the comparison licenses is narrow. These two released checkpoints, served the way I served them, on the current code and scenes, differ in how often they close doors. It does not license a statement about the two architectures. The checkpoints differ in pretraining, model size, action head, training steps and batch size; their serving stacks differ; and the protocol was run once. Any of these could carry the difference.
 
-\section{RQ3: atomic-task performance}
-\label{sec:atomic}
+\section{Distance from the upstream report}
+\label{sec:upstream-gap}
 
-Under the consumer-hardware adaptation protocol evaluated in this dissertation, no policy achieves dependable autonomous performance on any retail manipulation task. That statement is the central empirical reality of this benchmark.
+The upstream paper reports results for the same checkpoint families on the same tasks and conditions~\cite{soshin2025robobenchmart}. \ref{tab:upstream-gap} sets the two side by side. I include it because a reader will ask, not because the two columns measure the same thing; the differences in setup are listed in the caption and discussed below.
 
-Across the 144 triplet cells spanning Seeds, Pose, and Layout in Appendix~\ref{app:training-results}, cell success rates range from 0\% to 9\%, with a global mean of 1.5\%. The highest individual cell is Octo closing a showcase door at 9\% under training seeds. Under Pose, no model exceeds 4\% on any task. The policies are not inactive; they move, reach, and interact, but their terminal completion rates hover near the absolute floor.
-
-This outcome must be interpreted through the physical reality of our training protocol (Section~\ref{sec:training}). Each architecture was fine-tuned on a single desktop RTX 4090 GPU at a rigid batch size of 8, operating under preset step limits (30k to 100k steps, or roughly 2.0 to 2.5 wall-clock hours). Three architectures relied on parameter-efficient LoRA updates. No learning rate sweeps, hyperparameter grids, or validation-loss checkpoint selections were performed. The results in \ref{tab:main-results} describe what these four pipelines achieved after a brief fine-tuning session on consumer hardware. They do not define the upper ceiling of these foundation model families when trained to true mathematical convergence on enterprise GPU clusters.
-
-Three common assumptions in the manipulation literature are directly challenged by our empirical data:
-\begin{enumerate}[label=(\alph*),leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Assumption: Articulated doors are trivially easier than shelf picking.} Our data shows no dramatic separation: door success rates (1--4\%) cluster in the exact same band as pick-and-place (0--2\%).
-  \item \textbf{Assumption: Retrieving fallen items from the floor is uniquely challenging.} Floor recovery scores sit at the same near-zero baseline as shelf picking (1\% across models under Pose). In fact, under Seeds, Octo's highest task score is floor recovery at 7.5\%.
-  \item \textbf{Assumption: Multi-billion-parameter foundation models naturally outperform compact models.} Counter-intuitively, Octo (the smallest model at 93M parameters, and the only one fully fine-tuned without LoRA) achieves the highest individual scores in the benchmark. Whether this advantage stems from full fine-tuning versus LoRA, smaller parameter capacity fitting the tight step budget better, or architectural differences cannot be resolved without a controlled ablation.
-\end{enumerate}
-
-\section{Distribution shift}
-\label{sec:results-shift}
-
-Evaluating transfer across our experimental ladder reveals the severe mathematical limitations of analyzing distribution shift against a near-zero baseline.
-
-Examining the Pose-to-Layout transition in \ref{tab:main-results}, ten of the twenty model--task pairs are numerically identical. Nine shift by less than 0.7 percentage points. A single pair---Octo on door closing---shows a 2.5 percentage point increase (from 8/200 to 13/200). Because baseline performance under Pose hovers between 0\% and 4\%, the observable downward range is almost non-existent. A drop from 1\% to 0\% could represent an environmental failure or stochastic sampling noise across 100 trials. We cannot claim transfer robustness simply because a model scoring 1\% under Pose also scores 1\% under Layout. When an agent is on the floor, it cannot fall any further.
-
-The \textbf{Pairing} condition introduces compositional shift, instructing models to manipulate targets never demonstrated for that task. Here, a clear pattern emerges:
-\begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item Octo and SmolVLA collapse to exactly 0\% across all pick-and-place tasks.
-  \item $\pi_0$ scores 0\% on Basket and Board, with an unpreserved historical record on Floor (marked NR).
-  \item $\pi_{0.5}$ maintains modest non-zero completions: 1\% on Basket, 1\% on Floor, and 3\% on Board.
-\end{itemize}
-The total collapse of Octo and SmolVLA to zero is consistent with a semantic grounding failure: when confronted with an instruction pairing a familiar skill with an un-demonstrated target, smaller models fail to bind the object reference to the motor primitive.
-
-Crucially, the Layout shift is bounded by the physical initialization: every episode begins 1.4~meters in front of the target fixture, facing it. Translational noise is confined to $\pm 25$~cm, and yaw noise to $\pm 22.5^{\circ}$. The Layout condition tests visual robustness to novel background textures and local fixture geometry; it does not test long-range navigation through a shifting retail store.
-
-\section{Composite tasks}
-
-Both composite tasks---Pick Three Items and Fridge Sequence---record absolute zero across every model, scenario, and trial. Not a single policy succeeded in completing a full multi-stage execution chain.
-
-This finding is striking, but it must not be misinterpreted as a failure of high-level task planning or language decomposition. In our composite protocol, an algorithmic oracle monitors the environment and issues the next atomic instruction only after the preceding subtask is verified. High-level planning was solved by an oracle. The failure belongs entirely to low-level execution and compounding physical error.
-
-The mathematical autopsy of this failure is definitive. Consider a three-stage sequential task where each stage has an independent success probability $p$. The probability of completing the sequence is $P_{\text{composite}} = p^3$. In our atomic evaluations under pose perturbations, observed success probabilities hovered between 1\% and 4\% ($p \in [0.01, 0.04]$). Evaluating the sequence probability:
-\begin{equation}
-  P_{\text{composite}} = p^3 \le (0.04)^3 = 0.000064 = 0.0064\%.
-  \label{eq:composite-math}
-\end{equation}
-An expected success probability of less than 0.01\% means that in an evaluation budget of 100 trials, observing zero successes is a mathematical certainty. Even before considering error accumulation, base drift, or visual clutter, compounding Bernoulli decay guarantees failure. Multi-stage autonomy cannot emerge until atomic reliability surpasses a critical viability threshold ($p > 0.70$, yielding $p^3 \approx 0.34$).
-
-\section{Failure modes}
-\label{sec:failure-modes}
-
-While terminal success rates sit near the floor, analyzing where failed rollouts break down provides rich, actionable diagnostic insight. Success rates measure how often an agent completes a task; failure distributions reveal the physical bottlenecks that stop it.
-
+{\renewcommand{\arraystretch}{1.15}
 \begin{table}[H]
 \centering
-\scriptsize
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lrrrrrrrrrrr}
+\small
+\begin{tabular}{llccccc}
 \toprule
-Model & task & target & move & pregrasp & grasp & drop & displace & preplace & coord. & place & partial\\
+Model & Condition & Basket & Floor & Board & Open & Close \\
 \midrule
-Octo & 13 & 22 & 10 & 10 & 30 & 2 & 2 & 1 & 1 & 6 & 3\\
-SmolVLA & 9 & 20 & 12 & 40 & 17 & 0 & 0 & 0 & 0 & 0 & 2\\
-$\pi_0$ & 3 & 20 & 3 & 20 & 30 & 5 & 1 & 2 & 4 & 5 & 7\\
-$\pi_{0.5}$ & 2 & 18 & 1 & 12 & 40 & 4 & 7 & 0 & 2 & 9 & 5\\
+\multirow{4}{*}{Octo}
+ & Seeds$^{\ast}$ & 48 / 0 & 64 / 0 & 41 / 0 & 25 / 0 & 61 / 2 \\
+ & Pose           & 21 / 0 & 1 / 0  & 21 / 0 & 27 / 0 & 45 / 0 \\
+ & Layout         & 2 / 0  & 1 / 0  & 1 / 0  & 23 / 0 & 26 / 5 \\
+ & Pairing        & 0 / 0  & 0 / 0  & 0 / 0  & --     & -- \\
+\midrule
+\multirow{4}{*}{$\pi_{0.5}$}
+ & Seeds$^{\ast}$ & 84 / 0 & 88 / 0 & 72 / 0 & 68 / 0 & 98 / 25 \\
+ & Pose           & 55 / 0 & 21 / 0 & 56 / 0 & 56 / 2 & 91 / 17 \\
+ & Layout         & 31 / 0 & 4 / 0  & 27 / 0 & 49 / 2 & 78 / 20 \\
+ & Pairing        & 5 / 0  & 3 / 0  & 21 / 0 & --     & -- \\
 \bottomrule
-\end{tabular}}
-\caption{Distribution of annotated failure modes (\%) across 2,906 sampled unsuccessful episodes, categorized by earliest primary failure. Rows sum to 100\%.}
-\label{tab:failure-share}
-\end{table}
+\end{tabular}
+\caption{Upstream success rate / this run, in percent, rounded. Upstream Pose, Layout and Pairing values are from Table~2 of arXiv:2511.10276v2 (``In-Domain'', ``Unseen Scenes'', ``Unseen Scenes \& Items''); $^{\ast}$upstream Seeds values are my averages of the per-item ``Train Seeds'' rows in its Tables~6 and~9. Upstream Open and Close average fridge and showcase, as the cells here do. The upstream figures use 100 episodes per configuration and the code, scenes and evaluation infrastructure of that study; mine use 30 per configuration on the current public code and the January 2026 scene release (Section~\ref{sec:versions}).}
+\label{tab:upstream-gap}
+\end{table}}
 
-\ref{tab:failure-share} presents the breakdown across 2,906 annotated failure trajectories. Several macroscopic patterns stand out:
-\begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Grasp Acquisition is the Universal Bottleneck}: For Octo, $\pi_0$, and $\pi_{0.5}$, grasping is the largest single failure mode, accounting for 30\%, 30\%, and 40\% of all breakdowns. The robot reaches the target product, aligns its gripper, and closes the fingers, but fails to establish a secure friction hold.
-  \item \textbf{SmolVLA Fails Earlier in the Chain}: For SmolVLA, pre-grasp alignment leads at 40\%, followed by target mis-grounding at 20\% and grasp failure at 17\%. SmolVLA frequently fails to position its end-effector within reach of the object, explaining its uniform zero on pick-and-place tasks.
-  \item \textbf{Persistent Target Mis-grounding}: Across all four models, target grounding errors remain remarkably consistent, hovering between 18\% and 22\%. Approximately one in every five failures occurs because the policy interacts with the wrong retail package. The models generate kinematically convincing reaches, but direct them toward the wrong brand.
-  \item \textbf{Collateral Disturbance in Clutter}: $\pi_{0.5}$ exhibits a 7\% displacement failure rate, noticeably higher than its peers. In densely packed shelves, aggressive arm movements disturb adjacent stock, violating our strict collateral predicates.
-\end{itemize}
+The gap is not a matter of sampling noise. Take the cleanest case, $\pi_{0.5}$ on Basket under Seeds. Upstream reports 82--89\% across the three products. If the true rate in my setting were even a tenth of that, the probability of 0 successes in 90 episodes would be about $(1-0.08)^{90}\approx 5\times10^{-4}$; at the reported rate it is effectively zero. The same reasoning applies to every pick-and-place cell where upstream reports more than a few percent. Something differs systematically between the two evaluations.
 
-Before indicting the policy architectures for these grasping failures, our runtime protocol audit uncovered two profound operational constraints that bear directly on physical manipulation.
+What differs, I cannot determine from the records I have. Several candidates are open, and I list them in roughly the order in which I would test them. None has been tested.
 
-\textbf{The 50-Step Open-Loop Horizon.} Evaluated policies generate action chunks of 50 steps, which are executed open-loop by the simulator before a new visual observation is rendered. In a high-speed contact environment, 50 simulation steps represent an eternity. If the gripper fingers misalign by a mere centimeter upon contact, the error cannot be corrected until the 50-step chunk expires, by which time the object has slipped, tilted, or collided with neighboring stock. Open-loop chunking blinds the policy during the most critical phase of physical manipulation.
+\textbf{Environment drift after the checkpoints were released.} The Octo checkpoint I used is dated 4~November 2025 and the $\pi_{0.5}$ checkpoint 5~November 2025. The upstream code changed afterwards in ways that touch exactly what a policy sees and starts from. A commit on 5~May 2026 (\texttt{1a2a12b}, ``updated initial qpos'') changed the initial joint configuration in \texttt{DarkstoreContinuousBaseEnv}, which the door environments inherit, and in the basket environment, from which Board and Floor inherit; the initial torso height went from 0.36 (0.34 in the basket environment) to 0.0, and the initial arm pose changed as well. Lighting was changed in November 2025 and again in January 2026, motion-planning and robot-model code in April and May 2026, and the demonstration data were regenerated in January 2026. The scene release I evaluated on (\texttt{3dabfaaf}, 22~January 2026) is described as ``new MP data with regen layouts''. The Seeds condition reads its episode seeds from the demonstration files in that release, so it is not guaranteed to reproduce the scenes the checkpoints were trained on, let alone the starting poses or lighting. If the policies are sensitive to their initial arm and torso configuration, this alone could explain much of the gap.
 
-\textbf{The Rigid Spine Constraint ($q_{\text{torso}} = 0$).} In the evaluation client, the torso-lift action dimension is explicitly overwritten with zero at every timestep, permanently pinning the Fetch robot's prismatic spine to its mechanical lowest point. The robot operates with zero vertical torso mobility. This constraint is devastating for tasks like floor recovery: picking an object from the floor and depositing it onto a shelf with an immobilized torso forces the 7-DOF arm to operate at the absolute boundary of its kinematic reach envelope, drastically reducing manipulability and magnifying grasp instability.
+\textbf{Interface mismatch.} The upstream paper describes an 11-dimensional action (seven arm joints, gripper, torso lift and two base velocities). The current client and the OpenPI adapter work with 13 dimensions and overwrite two of them, which by my reading of the controller order are the two head joints (Section~\ref{sec:control}). Thirteen minus two is eleven, which suggests the two descriptions are consistent, but I have not verified that the checkpoints' output dimensions map onto the controller in the order I assume. Normalisation statistics are a related risk; the $\pi_{0.5}$ server loaded them from the checkpoint directory, and I did not compare them with those used in training.
 
-\section{Protocol audit against the experimental implementation}
-\label{sec:verification}
+\textbf{Serving differences.} The upstream paper states two frames of observation history for Octo; the released server, and the upstream README, use one. The $\pi_{0.5}$ adapter does not set an action horizon, so it inherits the OpenPI default, which I have not checked on the server revision used.
 
-In the spirit of rigorous reproducible science, we conducted a systematic audit comparing the conceptual protocol against the raw implementation code. A peer review of the codebase identified potential discrepancies; each item was independently reproduced and verified by the author before inclusion in \ref{tab:verification}.
+\textbf{Sample size and run-to-run variation.} Thirty episodes per configuration widen every interval, and I ran the protocol once. This can explain differences of a few points. It cannot explain 84\% against 0\%.
 
-{\renewcommand{\arraystretch}{1.22}
+The door results are worth a second look in this light. They are the only cells where my numbers are clearly above zero, and also the cells with the most tolerant predicates and, for closing, possibly the least sensitivity to the arm's starting configuration. That pattern is what one would expect if a systematic shift had damaged fine manipulation while leaving coarse pushing partly intact. I find this suggestive. It is not evidence, and a version-aligned re-evaluation (Section~\ref{sec:future}) is the direct way to find out.
+
+\section{Protocol properties that bound interpretation}
+\label{sec:protocol-properties}
+
+Some properties of the evaluation protocol would matter even if the version question were settled. \ref{tab:protocol-properties} lists those I confirmed in the code, with the direction in which each one affects interpretation.
+
+{\renewcommand{\arraystretch}{1.2}
 \begin{table}[H]
 \centering
 \footnotesize
 \begin{tabularx}{\textwidth}{
->{\RaggedRight\arraybackslash}p{0.29\textwidth}
+>{\RaggedRight\arraybackslash}p{0.25\textwidth}
 >{\RaggedRight\arraybackslash}X
->{\RaggedRight\arraybackslash}p{0.13\textwidth}}
+>{\RaggedRight\arraybackslash}p{0.25\textwidth}}
 \toprule
-Confirmed Discrepancy & Operational Reality in Code & Direction \\
+Property & What the code does & Effect on interpretation \\
 \midrule
-Pairing targets present in training scenes & Withheld targets stood on background shelves during adaptation; Pairing tests prompt binding, not visual novelty & More permissive \\
-Door tasks reuse training scenes in Layout & Door Layout reuses training floor plans, varying only textures and starting poses; geometry is unchanged & More permissive \\
-Robot starts 1.4~m from fixture facing target & Policies never traverse aisles or navigate stores; evaluations test local approach and manipulation & More permissive \\
-Basket acceptance box and collateral scope & Acceptance region is a large $0.4\times 0.4\times 0.4$~m cube; collateral checks ignore distant fixtures & More permissive \\
-Shared seed configurations & Board transfer and floor recovery share seeds, reducing layout diversity from ten plans to five & More permissive \\
-50-step open-loop action chunking & Observations update once every 50 steps; policies cannot make mid-chunk tactile or visual corrections & More restrictive \\
-Torso lift clamped to zero ($q_{\text{torso}} = 0$) & Prismatic torso is permanently immobilized at minimum height across all tasks and demonstrations & More restrictive \\
+Door Layout reuses training scenes & \texttt{*\_uns} door configurations load the training scene directories; only episode and pose seeds change & Door Layout says nothing about new store geometry \\
+Basket Layout scene directory & \texttt{basket\_*\_uns} configurations load \texttt{test\_unseen\_items\_pick\_to\_basket}, the directory also used by the Basket Pairing configurations & Basket Layout and Pairing share scenes; immaterial here because both are 0 \\
+Robot starts near the fixture & Base placed 1.4~m in front of the target fixture, then perturbed (Section~\ref{sec:conditions-def}) & Tests local approach and manipulation, not store navigation \\
+Pick-and-place predicates & Basket: box of half-side 0.2~m (0.25~m for the cereal) at the basket; Board: half-side 0.1~m, one board higher; Floor: half-side 0.2~m at the item's original shelf position. All three require every other product in the scene to stay near its initial pose & Strict about disturbance, tolerant about placement; the zeros cannot be attributed to either without trajectories \\
+Open-loop action chunks & The client executes every action returned by the server before requesting the next; Octo returns 50 & Policies cannot react within a chunk; plausibly harder for contact \\
+Success read at chunk boundaries & Termination flags are checked after the whole chunk; the outcome is the success flag of the last executed step & A predicate met mid-chunk and then lost is recorded as a failure \\
+Head joints locked & Action indices 8 and 9 set to 0 at every step; by the controller order these are head pan and tilt, under absolute position control & Head stays centred; torso channel is not overwritten \\
+Mixed execution & Octo partly serial and partly on four servers; $\pi_{0.5}$ on four clients sharing one server & Seed-matched, not strictly paired \\
+No per-step trajectories & \texttt{--save-traj} not passed; JSON episode lists empty & Failure stages cannot be reconstructed from saved data \\
 \bottomrule
 \end{tabularx}
-\caption{Systematic protocol audit of confirmed implementation discrepancies. ``Direction'' classifies whether the executed condition made the benchmark easier or harder than documented.}
-\label{tab:verification}
+\caption{Protocol properties confirmed in the evaluation code. The head-joint row is inferred from the code and the ManiSkill Fetch controller order; I did not print the controller's joint list at runtime.}
+\label{tab:protocol-properties}
 \end{table}}
 
-The audit reveals that discrepancies divide cleanly into two operational classes:
-\begin{enumerate}[label=(\alph*),leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Perceptual and Geometric Relaxations}: Placing pairing items on background shelves, reusing door layouts, initializing the robot 1.4~meters from fixtures, and employing generous basket bounding boxes made visual grounding and spatial reach substantially easier than initially specified.
-  \item \textbf{Kinematic and Control Cripplings}: Enforcing a 50-step open-loop blind spot and immobilizing the robot's vertical torso joint severely degraded physical control, turning contact acquisition into an open-loop gamble.
-\end{enumerate}
+One correction to earlier drafts of this work belongs here. I previously described the torso as fixed at zero. That was wrong. The client overwrites indices 8 and 9 of the 13-dimensional action. In the \texttt{pd\_joint\_pos} controller of the ManiSkill Fetch agent, actions are ordered arm (7), gripper (1), body (3) and base (2), and the body group is head pan, head tilt and torso lift. Indices 8 and 9 are therefore the head, and the torso is index 10, which the client passes through unchanged. Because the RoboBenchMart robot class configures the body group for absolute position targets, writing zero centres the head. The initial torso height is 0.0 in the current environments, but that is the starting state, not a constraint the client imposes.
 
-One item remains unresolved: the Octo evaluation server operated with an observation history length of one, whereas the training configuration in Appendix~\ref{app:training-results} specified two history frames. Because performance does not scale monotonically with history length, Octo's scores carry unresolved provenance.
+I do not think these properties explain the zeros on their own. The open-loop chunks and the chunk-boundary success check make success harder to register and might lower a rate, but upstream used the same chunk length and reports high rates on several of the same tasks. The predicate code, as far as the repository history shows, was not changed after the checkpoints were released, apart from a fix to how initial product poses are stored (\texttt{3de0ea7}, November 2025). I cannot fully rule out an interaction between the scene-wide disturbance check and the newer scenes, since the check uses a relative tolerance on world coordinates and fails an episode if any product in the store has moved; without trajectories I have no way of seeing whether that happened. They matter more for the future: once a version-aligned baseline exists, they are the next things to vary.
 
-\section{What the benchmark demonstrates}
+\section{Summary}
+\label{sec:results-summary}
 
-Synthesizing our empirical results and protocol audit establishes what this benchmark legitimately proves:
-\begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Methodological and System Success}: Automated store generation produces structured, collision-free retail environments; mesh decimation enables large-scale 118-unit simulation on a single GPU; and algorithmic motion planning synthesizes millions of multi-modal transitions without teleoperation.
-  \item \textbf{The Consumer Hardware Boundary}: Fine-tuning generalist VLA models on a single 24~GB GPU with batch size 8 and preset step counts yields baseline success rates below 4\%. These scores demonstrate that low-rank adaptation under tight compute budgets does not magically produce robust manipulation controllers.
-  \item \textbf{The Primacy of Control Hygiene}: Low manipulation scores are driven primarily by open-loop action chunking and kinematic joint clamping, not high-level linguistic failure. Evaluating foundation models without closed-loop sensory-motor replanning is an evaluation of open-loop trajectory luck.
-\end{itemize}
-
-\section{Implications and a targeted ablation programme}
-\label{sec:ablations}
-
-Rather than prematurely expanding benchmark scale or adding new models to a leaderboard of near-zero scores, our findings establish a concrete, prioritized diagnostic roadmap:
-
-\textbf{1. Immediate Protocol Repairs (Zero-Retraining Interventions).} Two critical experiments can be executed immediately using existing checkpoints:
-\begin{itemize}[leftmargin=2.5em,itemsep=0.2em]
-  \item \textbf{Execution Horizon Sweep}: Evaluate unchanged policy checkpoints across action horizons of $H \in \{1, 5, 10, 25, 50\}$. If grasp success surges under tighter feedback loops, the open-loop hypothesis is directly confirmed without retraining a single parameter.
-  \item \textbf{Disjoint Door Layouts}: Regenerate door evaluation scenes using truly disjoint floor plan seeds, bringing door evaluation into methodological parity with pick-and-place.
-\end{itemize}
-
-\textbf{2. Establishing a Converged In-Domain Baseline.} Select a representative architecture (e.g., Octo or SmolVLA) and train it with validation-loss checkpointing until in-domain Seeds performance stabilizes above 50\%. Only when an agent possesses dependable in-domain competence can downward degradation across Pose, Layout, and Pairing be meaningfully measured.
-
-\textbf{3. Enabling the Full 13-D Kinematics.} Retrain policies with an active torso joint. Unlocking vertical spine movement is essential to provide the kinematic reach necessary for floor recovery and high-shelf picking.
-
-\textbf{4. Enriching Demonstrations with Recovery Trajectories.} Augment the algorithmic demonstration collector by injecting intentional spatial offsets during pre-grasp and transport, recording the planner's corrective maneuvers. Teaching policies how to recover from drift directly attacks the pre-grasp and grasp failure bottleneck.
-
-\textbf{5. Sensory and Planning Oracles.} Deploy diagnostic oracle ablations: provide policies with perfect 3D target bounding boxes to isolate visual grounding from motor control, or pair learned visual grounding with an analytical grasp planner to measure the isolated contribution of physical contact.
-
-This ablation roadmap transforms near-zero results into an actionable blueprint for developing robust, closed-loop mobile manipulation systems for the retail domain.
+The protocol ran to completion, with three small repairs, and left per-episode evidence rather than per-step trajectories. Under it, neither released checkpoint completed any of 1,800 pick-and-place episodes. $\pi_{0.5}$ closed doors in about a fifth of its attempts and almost never opened one; Octo closed a door four times in 180 attempts. Differences between Seeds, Pose and Layout are not resolvable at 30 episodes per configuration, door Layout does not change geometry, and Pairing had nothing to measure. The gap to the upstream report is far too large to be sampling noise. Version drift between the released checkpoints and the current environment is the leading candidate explanation, but it remains a hypothesis. Chapter~\ref{chap:conclusion} turns these results into conclusions and sets out the experiments that would test it.
 
 \endgroup
