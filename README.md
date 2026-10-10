@@ -20,7 +20,7 @@ All experiment numbers come from the evaluation records in the project repositor
 - `results/octo-2026-09-28/` — Octo, 42 configurations × 30 episodes
 - `results/pi05-2026-10-02/` — π₀.₅, 42 configurations × 30 episodes
 
-Each directory holds `success_rates.csv`, `episode_outcomes.csv`, `artifact_manifest.csv` and `log_manifest.csv`. Videos are stored in Git LFS. Upstream figures quoted in Chapter 5 are taken from arXiv:2511.10276v2.
+Each directory holds `success_rates.csv`, `episode_outcomes.csv`, `artifact_manifest.csv` and `log_manifest.csv`. Videos are stored in Git LFS. Details quoted from the upstream paper (training steps, batch sizes, demonstration counts) are taken from arXiv:2511.10276v2; Chapter 5 does not tabulate upstream results.
 
 Files under `tools/rerun/`, `tools/data/` and the `make_*_figure.py` scripts belong to an earlier draft and are no longer used by the dissertation.
 
@@ -29,6 +29,6 @@ Files under `tools/rerun/`, `tools/data/` and the `make_*_figure.py` scripts bel
 - Fill the red fields in `dissertation-metadata.tex`.
 - Replace the provisional declaration pages with the current NTU EEE wording, and update the signature dates.
 - Disclose AI assistance truthfully under the rules applicable to the submission.
-- Check the upstream values in Table 5.3 against the arXiv PDF.
+- Check the upstream details quoted in Chapters 3 and 4 against the arXiv PDF.
 
 The generated PDF is a review draft, not a submission-ready signed copy.

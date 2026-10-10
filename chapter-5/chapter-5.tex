@@ -5,18 +5,20 @@
 \setlength{\parindent}{2em}
 \setlength{\parskip}{0.55\baselineskip}
 
-Did the protocol even run? Every number later in this chapter depends on the answer, so I start there. The success counts come next, pick-and-place first and then the door tasks, which is where almost all the successes turned up. The rest of the chapter is interpretation. I set my counts against the upstream report, go through the explanations that are still open, and look at the properties of the protocol that limit what anyone, myself included, can conclude from it.
+Did the protocol even run? Every number later in this chapter depends on the answer, so I start there. The success counts come next, pick-and-place first and then the door tasks, which is where almost all the successes turned up. After that I look more closely at the successes themselves: how long they took, which scenes they came from, and how the two checkpoints overlap. A short section on what the runs cost in wall-clock time follows, because anyone repeating this work will want to know. The last part is about interpretation, and it is the part I am least comfortable with. The numbers are low enough that the first thing to ask is whether the checkpoints and the environment still belong together.
 
 \section{Execution and the evidence that remains}
 \label{sec:execution}
 
 Both models finished all 42 configurations, 30 episodes each: 1,260 episodes per checkpoint, 2,520 altogether. Getting there was messier than that sentence suggests, and the mess matters, because it affects how the two models' episodes can be compared.
 
-The Octo run started as a single serial batch. It crashed at configuration~8, the first floor task, with \texttt{NameError: get\_actor\_obb}: an upstream commit had removed the import from \texttt{dsynth/envs/pick\_from\_floor.py} while the function was still in use, so the floor environments could not be constructed at all. After I restored the import, the serial batch was resumed from configuration~8. The resumed process stopped after nine further configurations for a reason I was unable to establish; the log ends and no exit file was written. A second resumption completed one more configuration and was then stopped on purpose so that the remaining 25 configurations could run in parallel on four independent Octo servers (ports 8000--8003). Only configurations that finished all 30 episodes enter the results; partial directories left by the interrupted batches were discarded. The $\pi_{0.5}$ run was simpler. Four client processes shared one OpenPI policy server, and each of the 42 configurations wrote its own log with exactly one \texttt{Results:} line.
+The Octo run started as a single serial batch on 27 September. It crashed at configuration~8, the first floor task, with \texttt{NameError: get\_actor\_obb}: an upstream commit had removed the import from \texttt{dsynth/envs/pick\_from\_floor.py} while the function was still in use, so the floor environments could not be constructed at all. After I restored the import, the batch was resumed from configuration~8. The resumed process stopped after nine further configurations for a reason I was unable to establish; the log ends, no exit file was written, and the next configuration was left partial. A second resumption completed one more configuration and was then stopped on purpose, so that the remaining 25 configurations could run in parallel on four independent Octo servers (ports 8000--8003). That parallel phase ran from 02:16 to 07:10 on 28 September by the server clock, a little under five hours. Only configurations that finished all 30 episodes enter the results, and partial directories left by the interrupted batches were discarded. The $\pi_{0.5}$ run was simpler. Four client processes shared one OpenPI policy server, and all 42 configurations were done in eight hours and nine minutes on 2 October, each writing its own log with exactly one \texttt{Results:} line.
 
-Two further repairs were needed before the client and servers would work together. The evaluation client read the language instruction from the wrapped environment, which fails once gymnasium wrappers are applied; I changed it to read \texttt{env.unwrapped.language\_instructions}. The Octo server originally shared one policy object, including its observation-history buffer, across every connection; with parallel clients this would have mixed observations from different episodes, so I changed it to construct a separate policy per connection. Neither change touches the success predicates, the scenes or the seeds.
+Two further repairs were needed before the client and servers would work together. The evaluation client read the language instruction from the wrapped environment, which fails once gymnasium wrappers are applied; I changed it to read \texttt{env.unwrapped.language\_instructions}. The Octo server originally shared one policy object, including its observation-history buffer, across every connection. With parallel clients that would have mixed observations from different episodes, so I changed it to build a separate policy per connection. Neither change touches the success predicates, the scenes or the seeds.
 
 What the two runs left behind is thinner than it looks. Each configuration directory holds one MP4 per episode, an HDF5 file and a JSON file, which at a glance resembles a trajectory archive. It is not one. The JSON files list no episodes and every HDF5 file is 800 bytes, for a mundane reason: the evaluation script never passes \texttt{--save-traj}, and without it the client never calls \texttt{flush\_trajectory()}. Per-episode outcomes therefore come from the logs, where each \texttt{Results:} line names the seeds that succeeded. I mapped those seeds onto the 2,520 video files and hashed every artefact with SHA-256. The videos live in Git LFS. Nobody has watched them systematically, me included, and nothing in this chapter rests on what a video shows.
+
+There is one independent check on the bookkeeping. Each configuration's progress bar prints a running success fraction. For all 84 configurations (42 per model), the fraction on the final bar equals the success count in the results CSV divided by 30, and in every configuration without a success the mean and maximum episode length printed on the bar both equal the step cap. The CSV files, in other words, agree with the logs they were derived from. They are not an independent measurement of the simulator, of course, and a bug in the environment would be invisible to this check.
 
 So, RQ1: yes, but. The upstream release does run end to end from public code, scenes and checkpoints, once one import is restored in an environment file and two interface problems in the serving path are fixed. What it yields is a success flag per episode, tied to a seed, a video and a hash, rather than a step-by-step record of states and actions.
 
@@ -61,10 +63,12 @@ A zero from 30 or 60 trials says less than it seems to, and it is worth being pr
 
 The logs add one detail. In every pick-and-place configuration, for both models, the mean and maximum episode lengths on the progress bar equal the step cap, 750 for Board and Floor and 600 for Basket. Not one episode ended early. That is about as far as the evidence goes. There is no per-step trajectory, no stage-level signal in the logs and no annotation of the videos, so whether the robot never reached the item, grasped it and let go, or knocked something else off the shelf is simply unknown. I have not tried to guess.
 
+The Pairing configurations deserve a sentence of their own. They ask a checkpoint to handle a product it was not demonstrated with, and they used the same step caps and starting-pose ranges as the other conditions. Both checkpoints scored 0/60 in every Pairing cell, but since the Seeds, Pose and Layout cells for the same task families are also all zero, there was nothing for Pairing to be lower than. The condition ran correctly and told me nothing.
+
 \section{Door tasks}
 \label{sec:doors}
 
-The door tasks are where the two checkpoints become distinguishable. \ref{tab:door-configs} lists the eight door configurations per condition, and \ref{fig:door-results} shows the same counts with their intervals.
+The door tasks are where the two checkpoints become distinguishable. \ref{tab:door-configs} lists the door configurations for each condition, and \ref{fig:door-results} shows the same counts with their intervals.
 
 {\renewcommand{\arraystretch}{1.15}
 \begin{table}[H]
@@ -95,18 +99,56 @@ Configuration & Octo & $\pi_{0.5}$ & Octo & $\pi_{0.5}$ & Octo & $\pi_{0.5}$ \\
 
 For $\pi_{0.5}$ the difference between closing and opening is large. Pooled over Seeds, Pose and Layout, it closed a door in 37 of 180 episodes (20.6\%, Wilson $[15.3, 27.0]$\%) and opened one in 2 of 180 (1.1\%, $[0.3, 4.0]$\%). A two-sided Fisher exact test gives $p \approx 4\times10^{-10}$. At 30 episodes per configuration, this is the only contrast in the whole data set I am prepared to call clear.
 
-Why closing should be so much easier, the records do not say. One obvious story is that a door swinging shut can be shoved with any part of the arm, whereas opening one means finding and pulling a handle. I find that plausible. Nothing I recorded, though, separates it from other explanations. The closing configurations do have shorter mean episode lengths: for $\pi_{0.5}$, 437--452 steps against a cap of 500 on the fridge, and 827--927 against 1,000 on the showcase. That is what you would expect if successful episodes stop the moment the predicate is met, and it tells us nothing about how the door was moved.
+Why closing should be so much easier, the records do not say. One obvious story is that a door swinging shut can be shoved with any part of the arm, whereas opening one means finding and pulling a handle. I find that plausible. Nothing I recorded, though, separates it from other explanations.
 
 Fridge against showcase is a less useful comparison than it looks. The fridge lid has to come within 0.1~rad of its target, a showcase door within 0.2~rad; the doors start at different angles; the robot is placed differently in front of each. $\pi_{0.5}$ closed the fridge in 21/90 episodes and a showcase door in 16/90 (Fisher $p \approx 0.46$). With predicates that different, I would not read that as one fixture being harder than the other.
+
+\subsection*{How long the successful episodes ran}
+
+The progress bars give one more handle on the door results. An episode that fails runs to the step cap, so the printed mean episode length for a configuration is a weighted average of the cap (for failures) and the true length of each success. Solving for the successes gives an estimate of how long they took. The estimate is rough, because the printed mean is rounded to three digits, but for configurations with several successes it is good to a few steps.
+
+{\renewcommand{\arraystretch}{1.12}
+\begin{table}[H]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{llcccc}
+\toprule
+Model & Configuration & Successes & Cap & Printed mean & Implied success length \\
+\midrule
+$\pi_{0.5}$ & \texttt{close\_fridge}, Seeds   & 8 & 500  & 438 & $\approx$ 268 \\
+$\pi_{0.5}$ & \texttt{close\_fridge}, Pose    & 7 & 500  & 437 & $\approx$ 230 \\
+$\pi_{0.5}$ & \texttt{close\_fridge}, Layout  & 6 & 500  & 452 & $\approx$ 260 \\
+$\pi_{0.5}$ & \texttt{close\_showcase}, Seeds & 7 & 1000 & 827 & $\approx$ 259 \\
+$\pi_{0.5}$ & \texttt{close\_showcase}, Pose  & 3 & 1000 & 927 & $\approx$ 270 \\
+$\pi_{0.5}$ & \texttt{close\_showcase}, Layout & 6 & 1000 & 830 & $\approx$ 150 \\
+$\pi_{0.5}$ & \texttt{open\_fridge}, Layout   & 1 & 500  & 492 & $\approx$ 260 \\
+$\pi_{0.5}$ & \texttt{open\_showcase}, Pose   & 1 & 1000 & 998 & $\approx$ 940 \\
+Octo        & \texttt{close\_showcase}, Seeds & 1 & 1000 & 978 & $\approx$ 340 \\
+Octo        & \texttt{close\_showcase}, Layout & 3 & 1000 & 917 & $\approx$ 170 \\
+\bottomrule
+\end{tabular}
+\caption{Implied mean length, in steps, of the successful episodes in every configuration that had one. Derived from the final progress-bar line of each log, assuming failures ran to the cap, as they did in every configuration with no success. Rounding of the printed mean gives an uncertainty of about $15/k$ steps for $k$ successes.}
+\label{tab:success-length}
+\end{table}}
+
+Closing a door took a policy that managed it somewhere between 150 and 340 steps, a small fraction of the budget, and an episode ended as soon as the predicate held at a chunk boundary. The two successes at opposite extremes are instructive. The one $\pi_{0.5}$ \texttt{open\_showcase} success came at about step 940 of 1,000, nearly at the cap, which looks more like persistence than fluency. The single \texttt{open\_fridge} success, at about 260 steps, resembles the closing episodes. With one episode each I would not read more into either.
+
+\section{Which scenes succeed}
+\label{sec:which-scenes}
+
+Seeds identify scenes and starting states, so the success lists can be compared across conditions and across models. Two patterns show up, and both are descriptive. I would be wary of building anything on a handful of overlapping seeds.
+
+Seeds and Pose use the same 30 scene seeds per configuration; only the starting pose is drawn from a different stream. For $\pi_{0.5}$ on \texttt{close\_fridge}, the Seeds condition succeeded on 8 seeds and Pose on 7, and four seeds (28, 64, 84 and 92) appear in both lists. If the two sets of seeds had been drawn independently, I would expect about 1.9 in common; the probability of four or more is roughly 0.06. On \texttt{close\_showcase} the lists have 7 and 3 members and share one seed (76), against an expectation of 0.7. The evidence is weak but points one way: some scenes appear to be easier than others, whatever the starting pose.
+
+The second pattern involves both models. Octo's three \texttt{close\_showcase} successes under Layout were seeds 42005, 42010 and 42019, and every one of them is also among $\pi_{0.5}$'s six (42005, 42010, 42013, 42018, 42019 and 42027). If Octo's three had fallen at random among the 30 seeds, the chance that all three land inside $\pi_{0.5}$'s six is $\binom{6}{3}/\binom{30}{3}\approx0.005$. Its one Seeds success, seed 104, was a seed on which $\pi_{0.5}$ failed. Overall, the two checkpoints did not succeed on unrelated scenes. On the showcase, where the seed also determines which of four doors is the target, a shared difficulty profile is easy to imagine, but I have no record of which door each seed selected and so cannot test it.
 
 \section{Conditions}
 \label{sec:conditions}
 
 The four conditions were meant as a ladder, each rung a little further from the training data. In this run only one family, Close, and only one model, $\pi_{0.5}$, has enough successes to climb it at all. Its counts are 15/60, 10/60 and 12/60 for Seeds, Pose and Layout. Pairwise Fisher tests give $p \approx 0.37$ (Seeds against Pose), $0.81$ (Pose against Layout) and $0.66$ (Seeds against Layout). Sampling variation alone could produce any of these differences. Equally, a genuine drop of five or ten points could be hiding inside them.
 
-Larger differences would still be hard to interpret. Door Layout loads the same scene directories as Seeds and Pose and changes only the episode seeds (from 42,000) and the pose seeds (from 10,000), so it does not test transfer to new store geometry. Pairing has the opposite problem. It asks for a familiar skill on a product never demonstrated for that task, which makes sense only for pick-and-place, and pick-and-place never succeeded under any condition. With nothing to fall from, Pairing ran and tested nothing.
-
-Seeds and Pose can be compared a little more closely, because they share the same 30 episode seeds per configuration and differ only in the stream that draws the starting pose. For $\pi_{0.5}$, four \texttt{close\_fridge} seeds and one \texttt{close\_showcase} seed succeeded under both. That overlap is small, as you would expect if the starting pose made a difference. At counts this low, I would not lean on it.
+Larger differences would still be hard to interpret. Door Layout loads the same scene directories as Seeds and Pose and changes only the episode seeds (from 42,000) and the pose seeds (from 10,000), so it does not test transfer to new store geometry. Pairing has the opposite problem, as the pick-and-place section above explained: with nothing to fall from, it ran and tested nothing.
 
 \section{The two checkpoints}
 \label{sec:models}
@@ -117,51 +159,58 @@ Treat that test as description. The pairing is by seed and nothing more: the run
 
 So these two released checkpoints, served the way I served them on the current code and scenes, close doors at very different rates. That is all. It is not a verdict on the architectures. The checkpoints differ in pretraining, size, action head, training steps and batch size, they run through different serving stacks, and I ran the protocol once. Any one of those could account for the gap.
 
-\section{Distance from the upstream report}
-\label{sec:upstream-gap}
+\section{What the runs cost}
+\label{sec:cost}
 
-The upstream paper reports results for the same checkpoint families on the same tasks and conditions~\cite{soshin2025robobenchmart}. \ref{tab:upstream-gap} sets the two side by side. I include it because any reader will want to see it. The two numbers in each cell were not produced under the same conditions, as the caption and the discussion below make clear.
+A reader who wants to repeat or extend this evaluation will ask how long it takes. The progress bar of every configuration records the elapsed wall-clock time, and the worker logs of the parallel runs record start and finish times, so the answer rests on logs and not on my memory.
 
-{\renewcommand{\arraystretch}{1.15}
+{\renewcommand{\arraystretch}{1.12}
 \begin{table}[H]
 \centering
 \small
-\begin{tabular}{llccccc}
+\begin{tabular}{lcccc}
 \toprule
-Model & Condition & Basket & Floor & Board & Open & Close \\
+ & \multicolumn{2}{c}{Minutes per configuration} & \multicolumn{2}{c}{Seconds per executed step} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Family & Octo & $\pi_{0.5}$ & Octo & $\pi_{0.5}$ \\
 \midrule
-\multirow{4}{*}{Octo}
- & Seeds$^{\ast}$ & 48 / 0 & 64 / 0 & 41 / 0 & 25 / 0 & 61 / 2 \\
- & Pose           & 21 / 0 & 1 / 0  & 21 / 0 & 27 / 0 & 45 / 0 \\
- & Layout         & 2 / 0  & 1 / 0  & 1 / 0  & 23 / 0 & 26 / 5 \\
- & Pairing        & 0 / 0  & 0 / 0  & 0 / 0  & --     & -- \\
+Basket (600 steps)           & 29.9 & 31.9 & 0.100 & 0.106 \\
+Board (750 steps)            & 44.7 & 48.3 & 0.119 & 0.129 \\
+Floor (750 steps)            & 46.4 & 46.7 & 0.124 & 0.124 \\
+Fridge, open (500 steps)     & 16.2 & 16.8 & 0.065 & 0.068 \\
+Fridge, close (500 steps)    & 15.7 & 14.5 & 0.063 & 0.066 \\
+Showcase, open (1,000 steps) & 91.9 & 93.9 & 0.184 & 0.188 \\
+Showcase, close (1,000 steps) & 89.8 & 83.9 & 0.186 & 0.195 \\
 \midrule
-\multirow{4}{*}{$\pi_{0.5}$}
- & Seeds$^{\ast}$ & 84 / 0 & 88 / 0 & 72 / 0 & 68 / 0 & 98 / 25 \\
- & Pose           & 55 / 0 & 21 / 0 & 56 / 0 & 56 / 2 & 91 / 17 \\
- & Layout         & 31 / 0 & 4 / 0  & 27 / 0 & 49 / 2 & 78 / 20 \\
- & Pairing        & 5 / 0  & 3 / 0  & 21 / 0 & --     & -- \\
+All 42 configurations (hours) & \multicolumn{2}{c}{30.6 \quad 31.4} & & \\
 \bottomrule
 \end{tabular}
-\caption{Upstream success rate / this run, in percent, rounded. Upstream Pose, Layout and Pairing values are from Table~2 of arXiv:2511.10276v2 (``In-Domain'', ``Unseen Scenes'', ``Unseen Scenes \& Items''); $^{\ast}$upstream Seeds values are my averages of the per-item ``Train Seeds'' rows in its Tables~6 and~9. Upstream Open and Close average fridge and showcase, as the cells here do. The upstream figures use 100 episodes per configuration and the code, scenes and evaluation infrastructure of that study; mine use 30 per configuration on the current public code and the January 2026 scene release (Section~\ref{sec:versions}).}
-\label{tab:upstream-gap}
+\caption{Mean wall-clock time per configuration of 30 episodes, by family, and the same figure divided by the number of simulated steps actually executed. Taken from the final progress-bar line of each log. The per-step figure includes resets, policy queries and video encoding, and was measured while up to four processes shared the machine.}
+\label{tab:run-cost}
 \end{table}}
 
-This is not sampling noise. Take the cleanest case, $\pi_{0.5}$ on Basket under Seeds, where upstream reports 82--89\% across the three products. Suppose the true rate in my setting were only a tenth of that. Even then, the chance of 0 successes in 90 episodes would be about $(1-0.08)^{90}\approx 5\times10^{-4}$, and at the reported rate it is effectively nil. The same argument holds for every pick-and-place cell where upstream reports more than a few percent. The two evaluations differ systematically.
+Three things stand out. First, the two checkpoints cost almost the same, to within a few minutes per configuration, and the total for each model, 30.6 and 31.4 hours, differs by under three percent. Octo is queried once every 50 steps, and I have not verified the chunk length for $\pi_{0.5}$, but either way the policy is consulted rarely, which suggests that the simulator and the three cameras, not the model, set the pace. I did not time the servers separately, so that remains an inference. Second, the fixtures differ far more than the models do. A showcase configuration took about an hour and a half, a fridge configuration a quarter of an hour, and the three pick-and-place families sat in between at 30 to 48 minutes. Per executed step, that is roughly 0.06~s for the fridge, 0.10--0.13~s for the shelf tasks and 0.19~s for the showcase.
 
-How they differ, my records do not reveal. Several explanations remain open. I take them roughly in the order in which I would test them, and I have tested none.
+Third, running four processes at once cost surprisingly little per process. Among Octo's configurations, those that ran in the serial phase and those that ran in the parallel phase took almost the same time per family, for example 44.8 and 44.7 minutes for Board, 28.4 and 30.5 for Basket. The parallel Octo phase completed 19.1 hours' worth of configuration time in 4 h 53 min, a speed-up of about 3.9, and the $\pi_{0.5}$ run completed 31.4 hours' worth in 8 h 9 min, again about 3.9. For this workload, in other words, four workers on one machine were close to four times faster than one. That says nothing about how it would scale to eight, and I did not try.
 
-The one I would bet on is drift in the environment after the checkpoints were released. The Octo checkpoint I used is dated 4~November 2025 and the $\pi_{0.5}$ checkpoint 5~November 2025, and the upstream code then changed in ways that touch precisely what a policy sees and where it starts. A commit on 5~May 2026 (\texttt{1a2a12b}, ``updated initial qpos'') changed the initial joint configuration in \texttt{DarkstoreContinuousBaseEnv}, which the door environments inherit, and in the basket environment, from which Board and Floor inherit; the initial torso height went from 0.36 (0.34 in the basket environment) to 0.0, and the initial arm pose changed as well. Lighting was changed in November 2025 and again in January 2026, motion-planning and robot-model code in April and May 2026, and the demonstration data were regenerated in January 2026. The scene release I evaluated on (\texttt{3dabfaaf}, 22~January 2026) is described as ``new MP data with regen layouts''. The Seeds condition reads its episode seeds from the demonstration files in that release, so it is not guaranteed to reproduce the scenes the checkpoints were trained on, let alone the starting poses or lighting. A policy fine-tuned to start from one arm and torso posture may simply not cope with another; if these checkpoints are that sensitive, drift alone could account for much of the gap.
+\section{What limits the interpretation}
+\label{sec:version-drift}
+
+I have been avoiding an awkward fact. The upstream paper reports markedly higher pick-and-place success for these same checkpoint families than the zero I measured, and so a result of nothing in 900 episodes needs explaining before anyone uses these checkpoints as baselines. I do not set the two sets of numbers side by side. A 100-episode evaluation on the authors' infrastructure and a 30-episode one on a later release of the code are not like for like, and the comparison would invite exactly the reading I want to avoid. The direction of the difference is, however, the reason this section exists.
+
+The question is what I can say from my own records. With no successes at all in 900 episodes, the Wilson upper bound for each model's pick-and-place rate is about 0.4\%. For checkpoints fine-tuned on these very tasks, that is hard to reconcile with a working pairing of checkpoint and environment, and several candidate explanations remain open. I take them roughly in the order in which I would test them, and I have tested none.
+
+The one I would bet on is drift in the environment after the checkpoints were released. The Octo checkpoint I used is dated 4~November 2025 and the $\pi_{0.5}$ checkpoint 5~November 2025, and the upstream code then changed in ways that touch precisely what a policy sees and where it starts. A commit on 5~May 2026 (\texttt{1a2a12b}, ``updated initial qpos'') changed the initial joint configuration in \texttt{DarkstoreContinuousBaseEnv}, which the door environments inherit, and in the basket environment, from which Board and Floor inherit; the initial torso height went from 0.36 (0.34 in the basket environment) to 0.0, and the initial arm pose changed as well. Lighting was changed in November 2025 and again in January 2026, motion-planning and robot-model code in April and May 2026, and the demonstration data were regenerated in January 2026. The scene release I evaluated on (\texttt{3dabfaaf}, 22~January 2026) is described as ``new MP data with regen layouts''. The Seeds condition reads its episode seeds from the demonstration files in that release, so it is not guaranteed to reproduce the scenes the checkpoints were trained on, let alone the starting poses or lighting. A policy fine-tuned to start from one arm and torso posture may simply not cope with another; if these checkpoints are that sensitive, drift alone could account for much of what I saw.
 
 A second possibility is a mismatch at the interface between checkpoint and environment. The upstream paper describes an 11-dimensional action: seven arm joints, gripper, torso lift and two base velocities. The current client and the OpenPI adapter handle 13 dimensions and overwrite two, which by my reading of the controller order are the head joints (Section~\ref{sec:control}). Thirteen minus two is eleven, so the two descriptions are probably consistent. Probably. I have not checked that the checkpoints' outputs land on the controller in the order I assume, nor compared the normalisation statistics the $\pi_{0.5}$ server loaded from the checkpoint directory with those used in training.
 
-Smaller serving differences sit alongside these. The paper gives Octo two frames of observation history, whereas the released server and the upstream README use one. The $\pi_{0.5}$ adapter leaves the action horizon at OpenPI's default, which I did not verify on the revision I ran. Either could shift a rate. Neither seems likely to turn 84\% into nothing.
+Smaller serving differences sit alongside these. The paper gives Octo two frames of observation history, whereas the released server and the upstream README use one. The $\pi_{0.5}$ adapter leaves the action horizon at OpenPI's default, which I did not verify on the revision I ran. Either could shift a rate, though neither seems likely to turn a working policy into one that never succeeds.
 
-Then there is plain sampling and the fact that I ran the protocol once. Thirty episodes per configuration widen every interval, which accounts for disagreements of a few points. It does not account for 84\% against 0\%.
+Then there is plain sampling and the fact that I ran the protocol once. Thirty episodes per configuration widen every interval and would account for a difference of a few points. They cannot make 900 episodes come out empty.
 
 Seen against these candidates, the door results become interesting. They are the only cells where my counts are clearly above zero. They also have the most forgiving predicates and, for closing, perhaps the least dependence on exactly how the arm starts out. A systematic shift that wrecked fine manipulation while leaving coarse pushing partly intact would produce roughly this pattern. I find that suggestive, no more. The direct way to settle it is a version-aligned re-evaluation (Section~\ref{sec:future}).
 
-\section{Protocol properties that bound interpretation}
+\subsection*{Properties of the protocol}
 \label{sec:protocol-properties}
 
 Suppose the version question were settled tomorrow. Some features of the protocol would still constrain what its numbers mean. \ref{tab:protocol-properties} lists the ones I confirmed in the code, each with the way it bends interpretation.
@@ -194,13 +243,15 @@ No per-step trajectories & \texttt{--save-traj} not passed; JSON episode lists e
 
 The head-joint row corrects a mistake of my own. Earlier drafts of this work said the torso was fixed at zero. It is not. The client overwrites indices 8 and 9 of the 13-dimensional action. In the \texttt{pd\_joint\_pos} controller of the ManiSkill Fetch agent, actions are ordered arm (7), gripper (1), body (3) and base (2), and the body group is head pan, head tilt and torso lift. Indices 8 and 9 are therefore the head, and the torso is index 10, which the client passes through unchanged. Because the RoboBenchMart robot class configures the body group for absolute position targets, writing zero centres the head. The initial torso height is 0.0 in the current environments, but that is the starting state, not a constraint the client imposes.
 
-Could these properties alone produce the zeros? I doubt it. Open-loop chunks and a success check that only looks at chunk boundaries make success harder to register and might well lower a rate, but upstream used the same chunk length and still reports high rates on several of these tasks. The repository history also shows no change to the predicate code after the checkpoints were released, apart from a fix to how initial product poses are stored (\texttt{3de0ea7}, November 2025). One loose end remains. The disturbance check uses a relative tolerance on world coordinates and fails an episode if any product anywhere in the store has moved, so it could interact with the newer scenes in ways I cannot see without trajectories. Where these properties really matter is in the next round of work: once a version-aligned baseline exists, they are the first things I would vary.
+The door-Layout row has a curious footnote. The repository does contain a configuration for an unseen-scene fridge, \texttt{conf/ds\_continuous/test\_unseen\_scenes\_open\_fridge.yaml}, but \texttt{bash/eval\_model.sh} does not point any door configuration at a matching scene directory. I do not know whether that was an oversight or a choice, and I did not generate the scenes myself to find out.
+
+Could these properties alone produce the zeros? I doubt it. Open-loop chunks and a success check that only looks at chunk boundaries make success harder to register and might well lower a rate, but the upstream paper uses the same action horizon of 50 for its models. The repository history also shows no change to the predicate code after the checkpoints were released, apart from a fix to how initial product poses are stored (\texttt{3de0ea7}, November 2025). One loose end remains. The disturbance check uses a relative tolerance on world coordinates and fails an episode if any product anywhere in the store has moved, so it could interact with the newer scenes in ways I cannot see without trajectories. Where these properties really matter is in the next round of work: once a version-aligned baseline exists, they are the first things I would vary.
 
 \section{Summary}
 \label{sec:results-summary}
 
-The protocol ran to the end after three small repairs and left a success flag for each episode, not a trajectory. Neither checkpoint completed a single one of 1,800 pick-and-place episodes. $\pi_{0.5}$ closed a door in roughly one attempt in five and almost never opened one. Octo closed a door four times in 180.
+The protocol ran to the end after three small repairs and left a success flag for each episode, not a trajectory. Neither checkpoint completed a single one of 1,800 pick-and-place episodes. $\pi_{0.5}$ closed a door in roughly one attempt in five and almost never opened one. Octo closed a door four times in 180. Successful closings ended after 150 to 340 steps, and the scenes that succeeded for one checkpoint were disproportionately the scenes that succeeded for the other. Each checkpoint cost about 31 hours of simulation time, and four parallel workers brought the wall-clock figure down to a little under a third of that.
 
-Beyond that, the run says less than the protocol was designed to say. Seeds, Pose and Layout cannot be told apart at 30 episodes per configuration, door Layout leaves the geometry unchanged, and Pairing had nothing to measure. The distance to the upstream report, on the other hand, is far too large to be chance. My leading explanation is drift between the released checkpoints and the environment they now run in. It is still a hypothesis, and Chapter~\ref{chap:conclusion} describes how I would test it.
+Beyond that, the run says less than the protocol was designed to say. Seeds, Pose and Layout cannot be told apart at 30 episodes per configuration, door Layout leaves the geometry unchanged, and Pairing had nothing to measure. A result of nothing in 900 pick-and-place episodes is, to my mind, more likely to point at the pairing of checkpoint and environment than at the policies. My leading explanation is drift between the released checkpoints and the environment they now run in. It is still a hypothesis, and Chapter~\ref{chap:conclusion} describes how I would test it.
 
 \endgroup

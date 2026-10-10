@@ -73,7 +73,103 @@ Configurations are numbered in the order of \texttt{bash/eval\_model.sh}. The sc
 42 & \texttt{basket\_slam} & Pairing & 0/30 & 0/30 \\
 \end{longtable}}
 
-The successful episodes, identified by seed, are: Octo \texttt{close\_showcase} Seeds 104; Octo \texttt{close\_showcase} Layout 42005, 42010, 42019. The 39 $\pi_{0.5}$ successes are listed in \texttt{results/pi05-2026-10-02/episode\_outcomes.csv}. The three Octo Layout successes are also $\pi_{0.5}$ successes on the same seeds.
+\subsection*{Seeds of the successful episodes}
+
+Every configuration not listed here had no successes. Seeds are those printed on the \texttt{Results:} line of each log and match the video file names.
+
+{\renewcommand{\arraystretch}{1.15}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabularx}{\textwidth}{
+>{\RaggedRight\arraybackslash}p{0.26\textwidth}
+>{\RaggedRight\arraybackslash}p{0.19\textwidth}
+>{\RaggedRight\arraybackslash}X}
+\toprule
+Configuration, condition & Octo & $\pi_{0.5}$ \\
+\midrule
+\texttt{close\_fridge}, Seeds   & -- & 28, 44, 64, 84, 92, 104, 108, 112 \\
+\texttt{close\_showcase}, Seeds & 104 & 12, 16, 36, 60, 76, 84, 132 \\
+\texttt{close\_fridge}, Pose    & -- & 28, 32, 52, 64, 84, 92, 96 \\
+\texttt{open\_showcase}, Pose   & -- & 32 \\
+\texttt{close\_showcase}, Pose  & -- & 0, 76, 128 \\
+\texttt{open\_fridge}, Layout   & -- & 42029 \\
+\texttt{close\_fridge}, Layout  & -- & 42002, 42013, 42020, 42021, 42024, 42027 \\
+\texttt{close\_showcase}, Layout & 42005, 42010, 42019 & 42005, 42010, 42013, 42018, 42019, 42027 \\
+\bottomrule
+\end{tabularx}
+\caption{Seeds of all 43 successful episodes (4 for Octo, 39 for $\pi_{0.5}$).}
+\label{tab:success-seeds}
+\end{table}}
+
+\subsection*{Wall-clock time per configuration}
+
+Elapsed minutes for each configuration of 30 episodes, from the final progress-bar line of its log. Octo configurations 1 to 17 ran serially and 18 to 42 on four servers in parallel; every $\pi_{0.5}$ configuration ran alongside up to three others on a shared server.
+
+{\small
+\begin{longtable}{rllcc}
+\caption{Minutes per configuration.}
+\label{tab:per-config-time}\\
+\toprule
+\# & Configuration & Condition & Octo & $\pi_{0.5}$ \\
+\midrule
+\endfirsthead
+\multicolumn{5}{l}{\small\itshape \thetable\ continued}\\
+\toprule
+\# & Configuration & Condition & Octo & $\pi_{0.5}$ \\
+\midrule
+\endhead
+\midrule
+\endfoot
+\bottomrule
+\endlastfoot
+1 & \texttt{board\_duff} & Seeds & 46 & 50 \\
+2 & \texttt{board\_nestle} & Seeds & 47 & 50 \\
+3 & \texttt{board\_vanish} & Seeds & 41 & 50 \\
+4 & \texttt{open\_fridge} & Seeds & 16 & 16 \\
+5 & \texttt{close\_fridge} & Seeds & 17 & 13 \\
+6 & \texttt{open\_showcase} & Seeds & 93 & 96 \\
+7 & \texttt{close\_showcase} & Seeds & 90 & 82 \\
+8 & \texttt{floor\_beans} & Seeds & 48 & 48 \\
+9 & \texttt{floor\_slam} & Seeds & 50 & 45 \\
+10 & \texttt{basket\_fanta} & Seeds & 29 & 31 \\
+11 & \texttt{basket\_nivea} & Seeds & 28 & 31 \\
+12 & \texttt{basket\_stars} & Seeds & 28 & 32 \\
+\midrule
+13 & \texttt{board\_duff} & Pose & 43 & 47 \\
+14 & \texttt{board\_nestle} & Pose & 46 & 45 \\
+15 & \texttt{board\_vanish} & Pose & 46 & 48 \\
+16 & \texttt{open\_fridge} & Pose & 15 & 16 \\
+17 & \texttt{close\_fridge} & Pose & 14 & 15 \\
+18 & \texttt{open\_showcase} & Pose & 90 & 91 \\
+19 & \texttt{close\_showcase} & Pose & 92 & 89 \\
+20 & \texttt{floor\_beans} & Pose & 44 & 46 \\
+21 & \texttt{floor\_slam} & Pose & 45 & 46 \\
+22 & \texttt{basket\_fanta} & Pose & 29 & 32 \\
+23 & \texttt{basket\_nivea} & Pose & 30 & 33 \\
+24 & \texttt{basket\_stars} & Pose & 29 & 31 \\
+\midrule
+25 & \texttt{board\_duff} & Layout & 43 & 49 \\
+26 & \texttt{board\_nestle} & Layout & 44 & 50 \\
+27 & \texttt{board\_vanish} & Layout & 45 & 49 \\
+28 & \texttt{open\_fridge} & Layout & 18 & 19 \\
+29 & \texttt{close\_fridge} & Layout & 15 & 16 \\
+30 & \texttt{open\_showcase} & Layout & 92 & 94 \\
+31 & \texttt{close\_showcase} & Layout & 88 & 80 \\
+32 & \texttt{floor\_beans} & Layout & 46 & 49 \\
+33 & \texttt{floor\_slam} & Layout & 45 & 46 \\
+34 & \texttt{basket\_fanta} & Layout & 30 & 32 \\
+35 & \texttt{basket\_nivea} & Layout & 31 & 32 \\
+36 & \texttt{basket\_stars} & Layout & 31 & 32 \\
+\midrule
+37 & \texttt{board\_nivea} & Pairing & 45 & 48 \\
+38 & \texttt{board\_fanta} & Pairing & 46 & 47 \\
+39 & \texttt{floor\_fanta} & Pairing & 46 & 46 \\
+40 & \texttt{floor\_duff} & Pairing & 47 & 47 \\
+41 & \texttt{basket\_nestle} & Pairing & 33 & 32 \\
+42 & \texttt{basket\_slam} & Pairing & 31 & 32 \\
+\end{longtable}}
+The totals are 30.6 hours for Octo and 31.4 hours for $\pi_{0.5}$.
 
 \section{Revisions of external components}
 
